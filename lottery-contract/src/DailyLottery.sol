@@ -1,18 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IDailyLotteryToken} from "./IDailyLotteryToken.sol";
+import {IDailyLotteryToken} from "./token/IDailyLotteryToken.sol";
 import {IDailyLotteryNumberLogic} from './IDailyLotteryNumberLogic.sol';
-import {IDailyLotteryRandomManager} from './random/IDailyLotteryRandomManager.sol';
-
+import {IDailyLotteryRandProvider} from './rand/IDailyLotteryRandProvider.sol';
 
 contract DailyLottery is Ownable{
 
     IDailyLotteryToken public nft; // nft
     IDailyLotteryNumberLogic public numberLogic; // number logic
-    IDailyLotteryRandomManager public randomManager; // random manager
+    IDailyLotteryRandProvider public randProvider; // rand provider
 
     uint64 public lotteryNumber; // current lottery number
 
@@ -63,14 +61,14 @@ contract DailyLottery is Ownable{
     constructor(
         address _nftAddress,
         address _numberLogicAddress,
-        address _randomManagerAddress
+        address _randProviderAddress
     ) Ownable(msg.sender) {
         // initialize lottery data
         initLotteryData();
 
         nft = IDailyLotteryToken(_nftAddress);
         numberLogic = IDailyLotteryNumberLogic(_numberLogicAddress);
-        randomManager = IDailyLotteryRandomManager(_randomManagerAddress);
+        randProvider = IDailyLotteryRandProvider(_randProviderAddress);
     }
 
     function initLotteryData() private {
@@ -136,13 +134,13 @@ contract DailyLottery is Ownable{
         isDrawing = true;
         
         // request a random number
-        randomManager.requestRandomNumbers(1);
+        randProvider.requestRandomNumbers(1);
     }
 
     // VRF callback function
     function callbackFromRandomManager(uint256 _randomNumber) external {
         // check if the sender is the random manager
-        require(msg.sender == address(randomManager), OnlyRandomManager(msg.sender));
+        require(msg.sender == address(randProvider), OnlyRandomManager(msg.sender));
 
         // calculate winning number
         uint64 winningNumber = numberLogic.getWinnerNumber(_randomNumber);

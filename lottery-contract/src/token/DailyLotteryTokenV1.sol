@@ -10,7 +10,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IDailyLotteryToken} from "./IDailyLotteryToken.sol";
 
 
-contract DailyLotteryToken is
+contract DailyLotteryTokenV1 is
     IDailyLotteryToken,
     ERC721,
     ERC721URIStorage,
