@@ -1,28 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
-import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
+
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IDailyLotteryToken} from "./IDailyLotteryToken.sol";
+import {IDailyLotteryNumberLogic} from './IDailyLotteryNumberLogic.sol';
+import {IDailyLotteryRandomManager} from './random/IDailyLotteryRandomManager.sol';
 
 
-contract DailyLottery is  VRFConsumerBaseV2Plus {
+contract DailyLottery is Ownable{
+
+    IDailyLotteryToken public nft; // nft
+    IDailyLotteryNumberLogic public numberLogic; // number logic
+    IDailyLotteryRandomManager public randomManager; // random manager
 
     uint64 public lotteryNumber; // current lottery number
 
-    // current number, start from 1, increment by 1. 
-    // it will reset to 1 when the lottery number is changed.
-    uint64 public currentNumber; 
-
+    
     uint256 public pricePerNumber = 0.001 ether; // price per number
     uint8 public feeRate = 5; // fee rate
 
-    // VRF variables
-    bytes32 public keyHash; // VRF key hash
-    uint64 public subId; // VRF sub id
-    uint32 public callbackGasLimit = 100000; // VRF callback gas limit
-    uint16 public requestConfirmations = 3; // VRF request confirmations
-    uint32 public numWords = 1; // VRF request random words
-    uint256 public s_requestId; // VRF request id
+    
     bool public isDrawing = false; // VRF is drawing
 
     struct WinnerData {
@@ -40,7 +38,7 @@ contract DailyLottery is  VRFConsumerBaseV2Plus {
         uint256 pricePerNumber;
         uint8 feeRate;
 
-        mapping(address => uint64[]) userToNumbers;
+        mapping(address => uint64[]) userToNumbers; // move it to off-chain later
         mapping(uint64 => address) numberToUser;
 
         uint256 totalAmount;
@@ -55,27 +53,28 @@ contract DailyLottery is  VRFConsumerBaseV2Plus {
     error WrongEthValue(uint256 value);
     error DrawingInProgress();
     error NoNumbersToDraw();
-    error VRFRequestFailed();
+    
     error TransferFailed(uint256 value);
+    error OnlyRandomManager(address sender);
 
     // event for lottery drawn
     event LotteryDrawn(uint64 lotteryNumber, uint64 winningNumber, address winner, uint256 fee, uint256 prize);
 
     constructor(
-        address _vrfCoordinator,
-        bytes32 _keyHash,
-        uint64 _subId
-    ) VRFConsumerBaseV2Plus(_vrfCoordinator)  {
+        address _nftAddress,
+        address _numberLogicAddress,
+        address _randomManagerAddress
+    ) Ownable(msg.sender) {
         // initialize lottery data
         initLotteryData();
 
-        keyHash = _keyHash;
-        subId = _subId;
+        nft = IDailyLotteryToken(_nftAddress);
+        numberLogic = IDailyLotteryNumberLogic(_numberLogicAddress);
+        randomManager = IDailyLotteryRandomManager(_randomManagerAddress);
     }
 
     function initLotteryData() private {
         lotteryNumber++;
-        currentNumber = 1;
 
         // since LotteryData structure contains mapping, it cannot be directly assigned using struct literal
         LotteryData storage lotteryData = lotterys[lotteryNumber];
@@ -83,6 +82,8 @@ contract DailyLottery is  VRFConsumerBaseV2Plus {
         lotteryData.pricePerNumber = pricePerNumber;
         lotteryData.feeRate = feeRate;
         lotteryData.totalAmount = 0;
+
+        numberLogic.initNumberLogic();
     }
 
     // take numbers
@@ -99,11 +100,8 @@ contract DailyLottery is  VRFConsumerBaseV2Plus {
         require(msg.value % _pricePerNumber == 0, WrongEthValue(msg.value));
 
         // generate numbers
-        uint64[] memory numbers = new uint64[](msg.value / _pricePerNumber);
-        for (uint64 i = 0; i < numbers.length; i++) {
-            numbers[i] = currentNumber;
-            currentNumber++;
-        }
+        uint64 nums = uint64(msg.value / _pricePerNumber);
+        uint64[] memory numbers = numberLogic.takeNumbers(nums);
        
         // add numbers into lottery data
         uint64[] storage refUserToNumbers = lotteryData.userToNumbers[msg.sender];
@@ -127,70 +125,44 @@ contract DailyLottery is  VRFConsumerBaseV2Plus {
             revert DrawingInProgress();
         }
         
-        // if the current number is 1, no one take numbers.
-        if (currentNumber <= 1) {
+        // if no one take numbers, skip drawing
+        if (!numberLogic.canDraw()) {
             lotteryNumber++;
+            emit LotteryDrawn(lotteryNumber, 0, address(0), 0, 0);
             return;
         }
 
         // set drawing state
         isDrawing = true;
         
-        // request VRF random number
-        s_requestId = s_vrfCoordinator.requestRandomWords(
-            VRFV2PlusClient.RandomWordsRequest({
-                keyHash: keyHash,
-                subId: subId,
-                requestConfirmations: requestConfirmations,
-                callbackGasLimit: callbackGasLimit,
-                numWords: numWords,
-                extraArgs: VRFV2PlusClient._argsToBytes(
-                    VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
-                )
-            })
-        );
+        // request a random number
+        randomManager.requestRandomNumbers(1);
     }
 
     // VRF callback function
-    function fulfillRandomWords(
-        uint256 _requestId,
-        uint256[] calldata _randomWords
-    ) internal override {
-        if (_requestId != s_requestId) {
-            revert VRFRequestFailed();
-        }
+    function callbackFromRandomManager(uint256 _randomNumber) external {
+        // check if the sender is the random manager
+        require(msg.sender == address(randomManager), OnlyRandomManager(msg.sender));
 
-        // get random number and calculate winning number
-        uint256 randomNumber = _randomWords[0];
-        uint64 winningNumber = uint64((randomNumber % (currentNumber - 1)) + 1); // random value in [1, currentNumber-1]
+        // calculate winning number
+        uint64 winningNumber = numberLogic.getWinnerNumber(_randomNumber);
 
         // find winner
         address winner = lotterys[lotteryNumber].numberToUser[winningNumber];
 
-        // caculate prize and fee
-        uint256 fee = lotterys[lotteryNumber].totalAmount * feeRate / 100;
-        uint256 prize = lotterys[lotteryNumber].totalAmount - fee;
+        // handle fee and prize
+        (uint256 fee, uint256 prize) = _handleFeeAndPrize(winner);
 
-        // transfer fee to owner
-        (bool feeSuccess, ) = address(owner()).call{value: fee}("");
-        require(feeSuccess,  TransferFailed(fee));
-
-        // transfer prize to winner
-        (bool prizeSuccess, ) = address(winner).call{value: prize}("");
-        require(prizeSuccess, TransferFailed(prize));
+        // mint NFT to winner
+        uint256 tokenId = nft.safeMint(winner, lotteryNumber);
 
         // record winning information
         winners[lotteryNumber] = WinnerData({
             winner: winner,
-            tokenId: 0, // set to 0, can be added later
+            tokenId: tokenId,
             number: winningNumber,
             lotteryNumberr: lotteryNumber
         });
-
-        // record lottery data
-        LotteryData storage lotteryData = lotterys[lotteryNumber];
-        lotteryData.fee = fee;
-        lotteryData.prize = prize;
 
         emit LotteryDrawn(lotteryNumber, winningNumber, winner, fee, prize);
 
@@ -200,25 +172,25 @@ contract DailyLottery is  VRFConsumerBaseV2Plus {
         isDrawing = false;
     }
 
-    // set VRF parameters (only owner can call)
-    function setVRFParameters(
-        uint64 _subId,
-        bytes32 _keyHash,
-        uint32 _callbackGasLimit,
-        uint16 _requestConfirmations
-    ) public onlyOwner {
-        if (_subId != 0) {
-            subId = _subId;
-        }
-        if (_keyHash != 0) {
-            keyHash = _keyHash;
-        }
-        if (_callbackGasLimit != 0) {   
-            callbackGasLimit = _callbackGasLimit;
-        }
-        if (_requestConfirmations != 0) {
-            requestConfirmations = _requestConfirmations;
-        }
+    function _handleFeeAndPrize(address winner) private returns(uint256 fee, uint256 prize) {
+                // caculate prize and fee
+         fee = lotterys[lotteryNumber].totalAmount * feeRate / 100;
+         prize = lotterys[lotteryNumber].totalAmount - fee;
+
+        // transfer fee to owner
+        (bool feeSuccess, ) = address(owner()).call{value: fee}("");
+        require(feeSuccess,  TransferFailed(fee));
+
+        // transfer prize to winner
+        (bool prizeSuccess, ) = address(winner).call{value: prize}("");
+        require(prizeSuccess, TransferFailed(prize));
+
+        // record lottery data
+        LotteryData storage lotteryData = lotterys[lotteryNumber];
+        lotteryData.fee = fee;
+        lotteryData.prize = prize;
+
+        return (fee, prize);
     }
 
     function updatePricePerNumber(uint256 _pricePerNumber) public onlyOwner {
@@ -227,6 +199,10 @@ contract DailyLottery is  VRFConsumerBaseV2Plus {
 
     function updateFeeRate(uint8 _feeRate) public onlyOwner {
         feeRate = _feeRate;
+    }
+
+    function updateNftAddress(address _nftAddress) public onlyOwner {
+        nft = IDailyLotteryToken(_nftAddress);
     }
     
 }

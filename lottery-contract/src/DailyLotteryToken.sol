@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: MIT
 // Compatible with OpenZeppelin Contracts ^5.4.0
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.30;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC721Pausable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IDailyLotteryToken} from "./IDailyLotteryToken.sol";
+
 
 contract DailyLotteryToken is
+    IDailyLotteryToken,
     ERC721,
     ERC721URIStorage,
     ERC721Pausable,
@@ -33,7 +36,7 @@ contract DailyLotteryToken is
         _unpause();
     }
 
-    function safeMint(address to) public onlyOwner returns (uint256) {
+    function safeMint(address to, uint64 /** unused */) public onlyOwner returns (uint256) {
         uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, TOKEN_URI);
@@ -71,4 +74,5 @@ contract DailyLotteryToken is
     ) public view override(ERC721, ERC721URIStorage) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
+
 }

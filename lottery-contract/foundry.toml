@@ -2,3 +2,6 @@
 src = "src"
 out = "out"
 libs = ["lib", "node_modules"]
+
+[lint]
+exclude_lints = ["mixed-case-function", "erc20-unchecked-transfer"]
