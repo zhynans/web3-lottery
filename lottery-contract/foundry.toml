@@ -5,3 +5,9 @@ libs = ["lib", "node_modules"]
 
 [lint]
 exclude_lints = ["mixed-case-function", "erc20-unchecked-transfer"]
+
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+
+[etherscan]
+sepolia = { key = "${ETHERSCAN_API_KEY}" }

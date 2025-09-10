@@ -2,7 +2,6 @@
 pragma solidity ^0.8.30;
 
 interface IDailyLotteryNumberLogic {
-
     // initialize number logic
     function initNumberLogic() external;
 

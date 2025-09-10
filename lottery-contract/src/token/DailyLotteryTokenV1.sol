@@ -9,7 +9,6 @@ import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IDailyLotteryToken} from "./IDailyLotteryToken.sol";
 
-
 contract DailyLotteryTokenV1 is
     IDailyLotteryToken,
     ERC721,
@@ -17,16 +16,13 @@ contract DailyLotteryTokenV1 is
     ERC721Pausable,
     Ownable
 {
-    string private constant TOKEN_URI =
-        "ipfs/QmY1jzG5YiZhBZkHmPZrmG5di6TbNW5v8YsifMxnJbKZ5L";
+    string private constant TOKEN_URI = "ipfs/QmY1jzG5YiZhBZkHmPZrmG5di6TbNW5v8YsifMxnJbKZ5L";
 
     uint256 private _nextTokenId;
 
     error TransferDisabled(address from, address to, uint256 tokenId);
 
-    constructor(
-        address initialOwner
-    ) ERC721("DailyLotteryToken", "DLOT") Ownable(initialOwner) {}
+    constructor(address initialOwner) ERC721("DailyLotteryToken", "DLOT") Ownable(initialOwner) {}
 
     function pause() public onlyOwner {
         _pause();
@@ -36,7 +32,17 @@ contract DailyLotteryTokenV1 is
         _unpause();
     }
 
-    function safeMint(address to, uint64 /** unused */) public onlyOwner returns (uint256) {
+    function safeMint(
+        address to,
+        uint64
+    )
+        /**
+         * unused
+         */
+        public
+        onlyOwner
+        returns (uint256)
+    {
         uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, TOKEN_URI);
@@ -74,5 +80,4 @@ contract DailyLotteryTokenV1 is
     ) public view override(ERC721, ERC721URIStorage) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
-
 }

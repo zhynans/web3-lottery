@@ -3,28 +3,25 @@ pragma solidity ^0.8.30;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IDailyLotteryToken} from "./token/IDailyLotteryToken.sol";
-import {IDailyLotteryNumberLogic} from './IDailyLotteryNumberLogic.sol';
-import {IDailyLotteryRandProvider} from './rand/IDailyLotteryRandProvider.sol';
+import {IDailyLotteryNumberLogic} from "./IDailyLotteryNumberLogic.sol";
+import {IDailyLotteryRandProvider} from "./rand/IDailyLotteryRandProvider.sol";
 
-contract DailyLottery is Ownable{
-
+contract DailyLottery is Ownable {
     IDailyLotteryToken public nft; // nft
     IDailyLotteryNumberLogic public numberLogic; // number logic
     IDailyLotteryRandProvider public randProvider; // rand provider
 
     uint64 public lotteryNumber; // current lottery number
 
-    
     uint256 public pricePerNumber = 0.001 ether; // price per number
     uint8 public feeRate = 5; // fee rate
 
-    
     bool public isDrawing = false; // VRF is drawing
 
     struct WinnerData {
         address winner; // the address of the winner
         uint256 tokenId; // the token id of the winner
-        uint64 number;  // the number of the winner
+        uint64 number; // the number of the winner
         uint64 lotteryNumberr; // the lottery number
     }
 
@@ -35,10 +32,8 @@ contract DailyLottery is Ownable{
         uint64 lotteryNumber;
         uint256 pricePerNumber;
         uint8 feeRate;
-
         mapping(address => uint64[]) userToNumbers; // move it to off-chain later
         mapping(uint64 => address) numberToUser;
-
         uint256 totalAmount;
         uint256 fee;
         uint256 prize;
@@ -51,12 +46,18 @@ contract DailyLottery is Ownable{
     error WrongEthValue(uint256 value);
     error DrawingInProgress();
     error NoNumbersToDraw();
-    
+
     error TransferFailed(uint256 value);
     error OnlyRandomManager(address sender);
 
     // event for lottery drawn
-    event LotteryDrawn(uint64 lotteryNumber, uint64 winningNumber, address winner, uint256 fee, uint256 prize);
+    event LotteryDrawn(
+        uint64 lotteryNumber,
+        uint64 winningNumber,
+        address winner,
+        uint256 fee,
+        uint256 prize
+    );
 
     constructor(
         address _nftAddress,
@@ -100,7 +101,7 @@ contract DailyLottery is Ownable{
         // generate numbers
         uint64 nums = uint64(msg.value / _pricePerNumber);
         uint64[] memory numbers = numberLogic.takeNumbers(nums);
-       
+
         // add numbers into lottery data
         uint64[] storage refUserToNumbers = lotteryData.userToNumbers[msg.sender];
         for (uint64 i = 0; i < numbers.length; i++) {
@@ -113,7 +114,7 @@ contract DailyLottery is Ownable{
 
         // add amount into prize pool
         lotteryData.totalAmount += msg.value;
-        
+
         return numbers;
     }
 
@@ -122,7 +123,7 @@ contract DailyLottery is Ownable{
         if (isDrawing) {
             revert DrawingInProgress();
         }
-        
+
         // if no one take numbers, skip drawing
         if (!numberLogic.canDraw()) {
             lotteryNumber++;
@@ -132,7 +133,7 @@ contract DailyLottery is Ownable{
 
         // set drawing state
         isDrawing = true;
-        
+
         // request a random number
         randProvider.requestRandomNumbers(1);
     }
@@ -170,14 +171,14 @@ contract DailyLottery is Ownable{
         isDrawing = false;
     }
 
-    function _handleFeeAndPrize(address winner) private returns(uint256 fee, uint256 prize) {
-                // caculate prize and fee
-         fee = lotterys[lotteryNumber].totalAmount * feeRate / 100;
-         prize = lotterys[lotteryNumber].totalAmount - fee;
+    function _handleFeeAndPrize(address winner) private returns (uint256 fee, uint256 prize) {
+        // caculate prize and fee
+        fee = (lotterys[lotteryNumber].totalAmount * feeRate) / 100;
+        prize = lotterys[lotteryNumber].totalAmount - fee;
 
         // transfer fee to owner
         (bool feeSuccess, ) = address(owner()).call{value: fee}("");
-        require(feeSuccess,  TransferFailed(fee));
+        require(feeSuccess, TransferFailed(fee));
 
         // transfer prize to winner
         (bool prizeSuccess, ) = address(winner).call{value: prize}("");
@@ -202,5 +203,4 @@ contract DailyLottery is Ownable{
     function updateNftAddress(address _nftAddress) public onlyOwner {
         nft = IDailyLotteryToken(_nftAddress);
     }
-    
 }

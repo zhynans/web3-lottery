@@ -6,8 +6,7 @@ import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/V
 import {IDailyLotteryRandProvider} from "./IDailyLotteryRandProvider.sol";
 import {DailyLottery} from "../DailyLottery.sol";
 
-contract IDailyLotteryVRFProvider is IDailyLotteryRandProvider,VRFConsumerBaseV2Plus {
-
+contract IDailyLotteryVRFProvider is IDailyLotteryRandProvider, VRFConsumerBaseV2Plus {
     DailyLottery public dailyLottery;
 
     // VRF variables
@@ -19,7 +18,11 @@ contract IDailyLotteryVRFProvider is IDailyLotteryRandProvider,VRFConsumerBaseV2
 
     error VRFRequestFailed();
 
-    constructor(address vrfCoordinator, uint256 _subId, bytes32 _keyHash) VRFConsumerBaseV2Plus(vrfCoordinator) {
+    constructor(
+        address vrfCoordinator,
+        uint256 _subId,
+        bytes32 _keyHash
+    ) VRFConsumerBaseV2Plus(vrfCoordinator) {
         keyHash = _keyHash;
         subId = _subId;
     }
@@ -29,7 +32,7 @@ contract IDailyLotteryVRFProvider is IDailyLotteryRandProvider,VRFConsumerBaseV2
     }
 
     function requestRandomNumbers(uint32 nums) external override {
-       // request VRF random number
+        // request VRF random number
         vrfRequestId = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
                 keyHash: keyHash,
@@ -43,9 +46,11 @@ contract IDailyLotteryVRFProvider is IDailyLotteryRandProvider,VRFConsumerBaseV2
             })
         );
     }
-    
-    function fulfillRandomWords( uint256 _requestId,
-        uint256[] calldata _randomWords) internal override {
+
+    function fulfillRandomWords(
+        uint256 _requestId,
+        uint256[] calldata _randomWords
+    ) internal override {
         if (_requestId != vrfRequestId) {
             revert VRFRequestFailed();
         }
@@ -70,7 +75,7 @@ contract IDailyLotteryVRFProvider is IDailyLotteryRandProvider,VRFConsumerBaseV2
         if (_keyHash != 0) {
             keyHash = _keyHash;
         }
-        if (_callbackGasLimit != 0) {   
+        if (_callbackGasLimit != 0) {
             callbackGasLimit = _callbackGasLimit;
         }
         if (_requestConfirmations != 0) {
