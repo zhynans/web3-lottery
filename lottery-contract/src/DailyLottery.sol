@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
+import {console} from "forge-std/console.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IDailyLotteryToken} from "./token/IDailyLotteryToken.sol";
 import {IDailyLotteryNumberLogic} from "./IDailyLotteryNumberLogic.sol";
 import {IDailyLotteryRandProvider} from "./rand/IDailyLotteryRandProvider.sol";
+import {IDailyLotteryRandCallback} from "./rand/IDailyLotteryRandCallback.sol";
 
-contract DailyLottery is Ownable {
+contract DailyLottery is Ownable, IDailyLotteryRandCallback {
     IDailyLotteryToken public nft; // nft
     IDailyLotteryNumberLogic public numberLogic; // number logic
     IDailyLotteryRandProvider public randProvider; // rand provider
@@ -22,7 +24,7 @@ contract DailyLottery is Ownable {
         address winner; // the address of the winner
         uint256 tokenId; // the token id of the winner
         uint64 number; // the number of the winner
-        uint64 lotteryNumberr; // the lottery number
+        uint64 lotteryNumber; // the lottery number
     }
 
     // winners mapping
@@ -32,8 +34,6 @@ contract DailyLottery is Ownable {
         uint64 lotteryNumber;
         uint256 pricePerNumber;
         uint8 feeRate;
-        mapping(address => uint64[]) userToNumbers; // move it to off-chain later
-        mapping(uint64 => address) numberToUser;
         uint256 totalAmount;
         uint256 fee;
         uint256 prize;
@@ -41,6 +41,8 @@ contract DailyLottery is Ownable {
 
     // store every lottery data
     mapping(uint64 => LotteryData) public lotterys;
+    mapping(uint64 => mapping(address => uint64[])) public userToNumbers; // move it to off-chain later
+    mapping(uint64 => mapping(uint64 => address)) public numberToUser;
 
     error NotEnoughEth(uint256 value);
     error WrongEthValue(uint256 value);
@@ -64,12 +66,12 @@ contract DailyLottery is Ownable {
         address _numberLogicAddress,
         address _randProviderAddress
     ) Ownable(msg.sender) {
-        // initialize lottery data
-        initLotteryData();
-
         nft = IDailyLotteryToken(_nftAddress);
         numberLogic = IDailyLotteryNumberLogic(_numberLogicAddress);
         randProvider = IDailyLotteryRandProvider(_randProviderAddress);
+
+        // initialize lottery data
+        initLotteryData();
     }
 
     function initLotteryData() private {
@@ -86,7 +88,7 @@ contract DailyLottery is Ownable {
     }
 
     // take numbers
-    function takeNumbers() public payable returns (uint64[] memory) {
+    function takeNumbers() external payable returns (uint64[] memory) {
         if (isDrawing) {
             revert DrawingInProgress();
         }
@@ -95,7 +97,7 @@ contract DailyLottery is Ownable {
         uint256 _pricePerNumber = lotteryData.pricePerNumber; // get price per number
 
         // check if the value is correct
-        require(msg.value == _pricePerNumber, NotEnoughEth(msg.value));
+        require(msg.value >= _pricePerNumber, NotEnoughEth(msg.value));
         require(msg.value % _pricePerNumber == 0, WrongEthValue(msg.value));
 
         // generate numbers
@@ -103,23 +105,20 @@ contract DailyLottery is Ownable {
         uint64[] memory numbers = numberLogic.takeNumbers(nums);
 
         // add numbers into lottery data
-        uint64[] storage refUserToNumbers = lotteryData.userToNumbers[msg.sender];
+        uint64[] storage refUserToNumbers = userToNumbers[lotteryNumber][msg.sender];
         for (uint64 i = 0; i < numbers.length; i++) {
             refUserToNumbers.push(numbers[i]);
-        }
-
-        for (uint64 i = 0; i < numbers.length; i++) {
-            lotteryData.numberToUser[numbers[i]] = msg.sender;
+            numberToUser[lotteryNumber][numbers[i]] = msg.sender;
         }
 
         // add amount into prize pool
-        lotteryData.totalAmount += msg.value;
+        lotteryData.totalAmount = lotteryData.totalAmount + msg.value;
 
         return numbers;
     }
 
     // draw lottery
-    function drawLottery() public onlyOwner {
+    function drawLottery() external onlyOwner {
         if (isDrawing) {
             revert DrawingInProgress();
         }
@@ -139,7 +138,7 @@ contract DailyLottery is Ownable {
     }
 
     // VRF callback function
-    function callbackFromRandomManager(uint256 _randomNumber) external {
+    function callbackFromRand(uint256 _randomNumber) external {
         // check if the sender is the random manager
         require(msg.sender == address(randProvider), OnlyRandomManager(msg.sender));
 
@@ -147,7 +146,7 @@ contract DailyLottery is Ownable {
         uint64 winningNumber = numberLogic.getWinnerNumber(_randomNumber);
 
         // find winner
-        address winner = lotterys[lotteryNumber].numberToUser[winningNumber];
+        address winner = numberToUser[lotteryNumber][winningNumber];
 
         // handle fee and prize
         (uint256 fee, uint256 prize) = _handleFeeAndPrize(winner);
@@ -160,7 +159,7 @@ contract DailyLottery is Ownable {
             winner: winner,
             tokenId: tokenId,
             number: winningNumber,
-            lotteryNumberr: lotteryNumber
+            lotteryNumber: lotteryNumber
         });
 
         emit LotteryDrawn(lotteryNumber, winningNumber, winner, fee, prize);
@@ -202,5 +201,18 @@ contract DailyLottery is Ownable {
 
     function updateNftAddress(address _nftAddress) public onlyOwner {
         nft = IDailyLotteryToken(_nftAddress);
+    }
+
+    // getter functions
+
+    function getAddressByNumber(
+        uint64 _lotteryNumber,
+        uint64 _number
+    ) public view returns (address) {
+        return numberToUser[_lotteryNumber][_number];
+    }
+
+    function getWinnerData(uint64 _lotteryNumber) public view returns (WinnerData memory) {
+        return winners[_lotteryNumber];
     }
 }

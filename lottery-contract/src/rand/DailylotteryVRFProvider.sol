@@ -4,19 +4,20 @@ pragma solidity ^0.8.30;
 import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 import {IDailyLotteryRandProvider} from "./IDailyLotteryRandProvider.sol";
-import {DailyLottery} from "../DailyLottery.sol";
+import {IDailyLotteryRandCallback} from "./IDailyLotteryRandCallback.sol";
 
-contract IDailyLotteryVRFProvider is IDailyLotteryRandProvider, VRFConsumerBaseV2Plus {
-    DailyLottery public dailyLottery;
+contract DailyLotteryVRFProvider is IDailyLotteryRandProvider, VRFConsumerBaseV2Plus {
+    IDailyLotteryRandCallback public callback;
 
     // VRF variables
     bytes32 public keyHash; // VRF key hash
     uint256 public subId; // VRF sub id
-    uint32 public callbackGasLimit = 100000; // VRF callback gas limit
+    uint32 public callbackGasLimit = 1e7; // VRF callback gas limit
     uint16 public requestConfirmations = 3; // VRF request confirmations
     uint256 public vrfRequestId; // VRF request id
 
     error VRFRequestFailed();
+    error VRFRequestAlreadyRequested();
 
     constructor(
         address vrfCoordinator,
@@ -27,12 +28,15 @@ contract IDailyLotteryVRFProvider is IDailyLotteryRandProvider, VRFConsumerBaseV
         subId = _subId;
     }
 
-    function updateCallbackAddress(address _callbackAddress) external onlyOwner {
-        dailyLottery = DailyLottery(_callbackAddress);
+    function setCallbackAddress(address _callbackAddress) external onlyOwner {
+        callback = IDailyLotteryRandCallback(_callbackAddress);
     }
 
     function requestRandomNumbers(uint32 nums) external override {
-        // request VRF random number
+        if (vrfRequestId != 0) {
+            revert VRFRequestAlreadyRequested();
+        }
+
         vrfRequestId = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
                 keyHash: keyHash,
@@ -59,7 +63,9 @@ contract IDailyLotteryVRFProvider is IDailyLotteryRandProvider, VRFConsumerBaseV
         uint256 randomNumber = _randomWords[0];
 
         // call callback function
-        dailyLottery.callbackFromRandomManager(randomNumber);
+        callback.callbackFromRand(randomNumber);
+
+        vrfRequestId = 0;
     }
 
     // set VRF parameters (only owner can call)

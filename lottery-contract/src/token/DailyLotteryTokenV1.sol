@@ -20,9 +20,9 @@ contract DailyLotteryTokenV1 is
 
     uint256 private _nextTokenId;
 
-    error TransferDisabled(address from, address to, uint256 tokenId);
+    address allowedMinter;
 
-    constructor(address initialOwner) ERC721("DailyLotteryToken", "DLOT") Ownable(initialOwner) {}
+    constructor() ERC721("DailyLotteryToken", "DLOT") Ownable(msg.sender) {}
 
     function pause() public onlyOwner {
         _pause();
@@ -34,28 +34,36 @@ contract DailyLotteryTokenV1 is
 
     function safeMint(
         address to,
-        uint64
-    )
-        /**
-         * unused
-         */
-        public
-        onlyOwner
-        returns (uint256)
-    {
+        uint64 /** unused param*/
+    ) public onlyAllowedMinter returns (uint256) {
         uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, TOKEN_URI);
         return tokenId;
     }
 
-    // Generally, the transfer of tokens is not allowed.
+    function setAllowedMinter(address minter) public onlyOwner {
+        allowedMinter = minter;
+    }
+
+    // the transfer of tokens is not allowed.
+    error TransferDisabled(address from, address to, uint256 tokenId);
+
     function transferFrom(
         address from,
         address to,
         uint256 tokenId
-    ) public override(IERC721, ERC721) onlyOwner {
-        super.transferFrom(from, to, tokenId);
+    ) public pure override(IERC721, ERC721) {
+        revert TransferDisabled(from, to, tokenId);
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 tokenId,
+        bytes memory /* unused param*/
+    ) public pure override(IERC721, ERC721) {
+        revert TransferDisabled(from, to, tokenId);
     }
 
     // The following functions are overrides required by Solidity.
@@ -79,5 +87,13 @@ contract DailyLotteryTokenV1 is
         bytes4 interfaceId
     ) public view override(ERC721, ERC721URIStorage) returns (bool) {
         return super.supportsInterface(interfaceId);
+    }
+
+    // modifier
+    error NotAllowedToMint(address sender);
+
+    modifier onlyAllowedMinter() {
+        require(msg.sender == allowedMinter || msg.sender == owner(), NotAllowedToMint(msg.sender));
+        _;
     }
 }

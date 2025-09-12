@@ -2,6 +2,7 @@
 src = "src"
 out = "out"
 libs = ["lib", "node_modules"]
+PRIVATE_KEY_1 = "${PRIVATE_KEY_1}"
 
 [lint]
 exclude_lints = ["mixed-case-function", "erc20-unchecked-transfer"]
