@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 import {DailyLottery} from "src/DailyLottery.sol";
-import {DailyLotteryTokenV1} from "src/token/DailyLotteryTokenV1.sol";
-import {DailyLotteryNumberLogicV1} from "src/DailyLotteryNumberLogicV1.sol";
-import {DailyLotteryVRFProvider} from "src/rand/DailylotteryVRFProvider.sol";
+import {DailyLotteryTokenV1} from "src/dailylottery/DailyLotteryTokenV1.sol";
+import {DailyLotteryNumberLogicV1} from "src/dailylottery/DailyLotteryNumberLogicV1.sol";
+import {LotteryVRFProvider} from "src/dailylottery/lotteryVRFProvider.sol";
 
 contract DailyLotteryTest is Test {
     address deployer = vm.addr(1);
@@ -15,7 +15,7 @@ contract DailyLotteryTest is Test {
     uint96 gasPriceLink = 1e9; // mock gas price link
     int256 weiPerUnitLink = 4e15; // 0.004 ether per LINK, aligns with mocks
     VRFCoordinatorV2_5Mock vrfCoordinator;
-    DailyLotteryVRFProvider dailyLotteryVRFProvider;
+    LotteryVRFProvider lotteryVRFProvider;
     uint256 subId;
 
     function setUp() public {
@@ -27,22 +27,22 @@ contract DailyLotteryTest is Test {
         vrfCoordinator = new VRFCoordinatorV2_5Mock(baseFee, gasPriceLink, weiPerUnitLink);
 
         subId = vrfCoordinator.createSubscription();
-        dailyLotteryVRFProvider = new DailyLotteryVRFProvider(
+        lotteryVRFProvider = new LotteryVRFProvider(
             address(vrfCoordinator),
             subId,
             bytes32(0) // in mock env, keyHash doesn't matter
         );
-        vrfCoordinator.addConsumer(subId, address(dailyLotteryVRFProvider));
+        vrfCoordinator.addConsumer(subId, address(lotteryVRFProvider));
         vrfCoordinator.fundSubscription(subId, 100 ether); // mock fund subscription
 
         dailyLottery = new DailyLottery(
             address(dailyLotteryToken),
             address(dailyLotteryNumberLogic),
-            address(dailyLotteryVRFProvider)
+            address(lotteryVRFProvider)
         );
 
         // update the callback asetCallbackAddressyVRFProvider to dailyLottery
-        dailyLotteryVRFProvider.setCallbackAddress(address(dailyLottery));
+        lotteryVRFProvider.setCallbackAddress(address(dailyLottery));
 
         // set the allowed minter of DailyLotteryToken to dailyLottery
         dailyLotteryToken.setAllowedMinter(address(dailyLottery));
@@ -172,7 +172,7 @@ contract DailyLotteryTest is Test {
         assertTrue(dailyLottery.isDrawing());
         assertTrue(dailyLottery.lotteryNumber() == oldLotteryNumber);
 
-        uint256 requestId = dailyLotteryVRFProvider.vrfRequestId();
+        uint256 requestId = lotteryVRFProvider.vrfRequestId();
         assertTrue(requestId > 0);
 
         // generate random number
@@ -186,7 +186,7 @@ contract DailyLotteryTest is Test {
             false,
             false
         );
-        vrfCoordinator.fulfillRandomWords(requestId, address(dailyLotteryVRFProvider));
+        vrfCoordinator.fulfillRandomWords(requestId, address(lotteryVRFProvider));
 
         // check if the lottery is drawn
         assertTrue(!dailyLottery.isDrawing());

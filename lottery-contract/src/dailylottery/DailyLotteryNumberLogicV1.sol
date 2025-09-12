@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {IDailyLotteryNumberLogic} from "./IDailyLotteryNumberLogic.sol";
+import {IDailyLotteryNumberLogic} from "./interface/IDailyLotteryNumberLogic.sol";
 
 contract DailyLotteryNumberLogicV1 is IDailyLotteryNumberLogic {
     // current number, start from 1, increment by 1.

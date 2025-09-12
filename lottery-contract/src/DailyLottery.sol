@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {console} from "forge-std/console.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IDailyLotteryToken} from "./token/IDailyLotteryToken.sol";
-import {IDailyLotteryNumberLogic} from "./IDailyLotteryNumberLogic.sol";
-import {IDailyLotteryRandProvider} from "./rand/IDailyLotteryRandProvider.sol";
-import {IDailyLotteryRandCallback} from "./rand/IDailyLotteryRandCallback.sol";
+import {IDailyLotteryToken} from "./dailylottery/interface/IDailyLotteryToken.sol";
+import {IDailyLotteryNumberLogic} from "./dailylottery/interface/IDailyLotteryNumberLogic.sol";
+import {IDailyLotteryRandProvider} from "./dailylottery/interface/IDailyLotteryRand.sol";
+import {IDailyLotteryRandCallback} from "./dailylottery/interface/IDailyLotteryRand.sol";
 
 contract DailyLottery is Ownable, IDailyLotteryRandCallback {
     IDailyLotteryToken public nft; // nft

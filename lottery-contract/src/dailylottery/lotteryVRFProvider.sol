@@ -3,10 +3,10 @@ pragma solidity ^0.8.30;
 
 import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
-import {IDailyLotteryRandProvider} from "./IDailyLotteryRandProvider.sol";
-import {IDailyLotteryRandCallback} from "./IDailyLotteryRandCallback.sol";
+import {IDailyLotteryRandProvider} from "./interface/IDailyLotteryRand.sol";
+import {IDailyLotteryRandCallback} from "./interface/IDailyLotteryRand.sol";
 
-contract DailyLotteryVRFProvider is IDailyLotteryRandProvider, VRFConsumerBaseV2Plus {
+contract LotteryVRFProvider is IDailyLotteryRandProvider, VRFConsumerBaseV2Plus {
     IDailyLotteryRandCallback public callback;
 
     // VRF variables

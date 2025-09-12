@@ -3,13 +3,13 @@ pragma solidity ^0.8.30;
 
 import {Test} from "forge-std/Test.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
-import {DailyLotteryVRFProvider} from "src/rand/DailylotteryVRFProvider.sol";
-import {DailyLotteryRandCallbackMock} from "./DailyLotteryRandCallbackMock.sol";
+import {LotteryVRFProvider} from "src/dailylottery/lotteryVRFProvider.sol";
+import {LotteryRandCallbackMock} from "./LotteryRandCallbackMock.sol";
 
-contract DailyLotteryVRFProviderTest is Test {
-    DailyLotteryVRFProvider public dailyLotteryVRFProvider;
+contract LotteryVRFProviderTest is Test {
+    LotteryVRFProvider public lotteryVRFProvider;
     VRFCoordinatorV2_5Mock public vrfCoordinator;
-    DailyLotteryRandCallbackMock public callback;
+    LotteryRandCallbackMock public callback;
     uint256 public subId;
     uint96 baseFee = 0.1 ether; // mock base fee
     uint96 gasPriceLink = 1e9; // mock gas price link
@@ -18,27 +18,27 @@ contract DailyLotteryVRFProviderTest is Test {
     function setUp() public {
         vrfCoordinator = new VRFCoordinatorV2_5Mock(baseFee, gasPriceLink, weiPerUnitLink);
         subId = vrfCoordinator.createSubscription();
-        dailyLotteryVRFProvider = new DailyLotteryVRFProvider(
+        lotteryVRFProvider = new LotteryVRFProvider(
             address(vrfCoordinator),
             subId,
             bytes32(0) // in mock env, keyHash doesn't matter
         );
-        vrfCoordinator.addConsumer(subId, address(dailyLotteryVRFProvider));
+        vrfCoordinator.addConsumer(subId, address(lotteryVRFProvider));
         vrfCoordinator.fundSubscription(subId, 100 ether); // mock fund subscription
 
-        callback = new DailyLotteryRandCallbackMock();
-        dailyLotteryVRFProvider.setCallbackAddress(address(callback));
+        callback = new LotteryRandCallbackMock();
+        lotteryVRFProvider.setCallbackAddress(address(callback));
     }
 
     function test_RequestRandomNumberOnAlreadyRequested() public {
-        dailyLotteryVRFProvider.requestRandomNumbers(1);
-        vm.expectRevert(DailyLotteryVRFProvider.VRFRequestAlreadyRequested.selector);
-        dailyLotteryVRFProvider.requestRandomNumbers(1);
+        lotteryVRFProvider.requestRandomNumbers(1);
+        vm.expectRevert(LotteryVRFProvider.VRFRequestAlreadyRequested.selector);
+        lotteryVRFProvider.requestRandomNumbers(1);
     }
 
     function test_RequestRandomNumber() public {
-        dailyLotteryVRFProvider.requestRandomNumbers(1);
-        uint256 requestId = dailyLotteryVRFProvider.vrfRequestId();
+        lotteryVRFProvider.requestRandomNumbers(1);
+        uint256 requestId = lotteryVRFProvider.vrfRequestId();
 
         // assert VRF coordinator's RandomWordsFulfilled event, only check indexed requestId and subId
         vm.expectEmit(true, true, false, false, address(vrfCoordinator));
@@ -51,6 +51,6 @@ contract DailyLotteryVRFProviderTest is Test {
             false,
             false
         );
-        vrfCoordinator.fulfillRandomWords(requestId, address(dailyLotteryVRFProvider));
+        vrfCoordinator.fulfillRandomWords(requestId, address(lotteryVRFProvider));
     }
 }

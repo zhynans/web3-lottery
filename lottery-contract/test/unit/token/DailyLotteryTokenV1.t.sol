@@ -2,7 +2,7 @@
 pragma solidity ^0.8.30;
 
 import {Test} from "forge-std/Test.sol";
-import {DailyLotteryTokenV1} from "src/token/DailyLotteryTokenV1.sol";
+import {DailyLotteryTokenV1} from "src/dailylottery/DailyLotteryTokenV1.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 

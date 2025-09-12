@@ -2,7 +2,7 @@
 pragma solidity ^0.8.30;
 
 import {Test} from "forge-std/Test.sol";
-import {DailyLotteryNumberLogicV1} from "src/DailyLotteryNumberLogicV1.sol";
+import {DailyLotteryNumberLogicV1} from "src/dailylottery/DailyLotteryNumberLogicV1.sol";
 
 contract DailyLotteryNumberLogicV1Test is Test {
     DailyLotteryNumberLogicV1 public dailyLotteryNumberLogic;
