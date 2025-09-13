@@ -14,7 +14,7 @@ contract DailyLotteryTokenV1Test is Test {
     }
 
     function test_mintRevertOnAllowedMinter() public {
-        address accont = vm.addr(10);
+        address accont = makeAddr("account");
         vm.prank(accont);
         vm.expectRevert(
             abi.encodeWithSelector(DailyLotteryTokenV1.NotAllowedToMint.selector, accont)
@@ -23,48 +23,39 @@ contract DailyLotteryTokenV1Test is Test {
     }
 
     function test_Mint() public {
-        uint256 tokenId = dailyLotteryToken.safeMint(vm.addr(1), 1);
-        assertEq(dailyLotteryToken.ownerOf(tokenId), vm.addr(1));
+        address user1 = makeAddr("user1");
+        uint256 tokenId = dailyLotteryToken.safeMint(user1, 1);
+        assertEq(dailyLotteryToken.ownerOf(tokenId), user1);
     }
 
-    function test_TransferFromOnDisabled() public {
-        address account1 = vm.addr(1);
-        address account2 = vm.addr(2);
+    function test_TransferFromOnNotAllowed() public {
+        address account1 = makeAddr("account1");
+        address account2 = makeAddr("account2");
 
         uint256 tokenId = dailyLotteryToken.safeMint(account2, 1);
 
         // change to account2
         vm.prank(account2);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                DailyLotteryTokenV1.TransferDisabled.selector,
-                account2,
-                account1,
-                tokenId
-            )
+            abi.encodeWithSelector(DailyLotteryTokenV1.TokenTransferNotAllowed.selector)
         );
         dailyLotteryToken.transferFrom(account2, account1, tokenId);
     }
 
-    function test_SafeTransferFromOnDisabled() public {
-        address account1 = vm.addr(1);
-        address account2 = vm.addr(2);
+    function test_SafeTransferFromOnNotAllowed() public {
+        address account1 = makeAddr("account1");
+        address account2 = makeAddr("account2");
 
         uint256 tokenId = dailyLotteryToken.safeMint(account2, 1);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                DailyLotteryTokenV1.TransferDisabled.selector,
-                account2,
-                account1,
-                tokenId
-            )
+            abi.encodeWithSelector(DailyLotteryTokenV1.TokenTransferNotAllowed.selector)
         );
 
         dailyLotteryToken.safeTransferFrom(account2, account1, tokenId);
     }
 
     function test_pauseOnOwner() public {
-        address accont = vm.addr(10);
+        address accont = makeAddr("unauthorized");
         vm.prank(accont);
         vm.expectRevert(
             abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, accont)
@@ -73,14 +64,15 @@ contract DailyLotteryTokenV1Test is Test {
     }
 
     function test_pause() public {
+        address user1 = makeAddr("user1");
         dailyLotteryToken.pause();
 
         vm.expectRevert(abi.encodeWithSelector(Pausable.EnforcedPause.selector));
-        dailyLotteryToken.safeMint(vm.addr(1), 1);
+        dailyLotteryToken.safeMint(user1, 1);
     }
 
     function test_unpauseOnOwner() public {
-        address accont = vm.addr(10);
+        address accont = makeAddr("unauthorized");
         vm.prank(accont);
         vm.expectRevert(
             abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, accont)
@@ -89,7 +81,7 @@ contract DailyLotteryTokenV1Test is Test {
     }
 
     function test_unpause() public {
-        address account = vm.addr(10);
+        address account = makeAddr("account");
 
         dailyLotteryToken.pause();
         vm.expectRevert(abi.encodeWithSelector(Pausable.EnforcedPause.selector));

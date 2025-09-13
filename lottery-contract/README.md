@@ -32,5 +32,6 @@ $ source .env
 部署脚本：
 
 ```shell
-$ forge script --chain sepolia script/DailyLottery.s.sol --fork-url $SEPOLIA_RPC_URL -vvvv --broadcast --verify
+$ forge script --chain sepolia script/DeployDailyLottery.s.sol --rpc-url $SEPOLIA_RPC_URL -vvvv --broadcast --verify
+$ forge script --chain sepolia script/DeployScratchCard.s.sol --rpc-url $SEPOLIA_RPC_URL -vvvv --broadcast --verify
 ```

@@ -49,7 +49,6 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
     error NoNumbersToDraw();
 
     error TransferFailed(uint256 value);
-    error OnlyRandomManager(address sender);
 
     // event for lottery drawn
     event LotteryDrawn(
@@ -136,10 +135,13 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         randProvider.requestRandomNumbers(1);
     }
 
+    // error for only rand provider
+    error OnlyRandProvider(address sender);
+
     // VRF callback function
     function callbackFromRand(uint256 _randomNumber) external {
         // check if the sender is the random manager
-        require(msg.sender == address(randProvider), OnlyRandomManager(msg.sender));
+        require(msg.sender == address(randProvider), OnlyRandProvider(msg.sender));
 
         // calculate winning number
         uint64 winningNumber = numberLogic.getWinnerNumber(_randomNumber);

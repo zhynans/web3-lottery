@@ -54,7 +54,13 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
         scratchCardRandProvider.requestRandomNumbers(msg.sender);
     }
 
+    // error for only rand provider
+    error OnlyRandProvider(address sender);
+
     function callbackFromRand(address _user, uint256 _randomNumber) external override {
+        // check if the sender is the random manager
+        require(msg.sender == address(scratchCardRandProvider), OnlyRandProvider(msg.sender));
+
         // get lottery result
         ScratchCardPrize prize = scratchCardResult.getResult(_randomNumber);
 

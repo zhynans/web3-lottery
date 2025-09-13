@@ -48,6 +48,7 @@ contract ScratchCardTokenV1 is
     }
 
     error InvalidPrize();
+    error TokenTransferNotAllowed();
 
     function safeMint(
         address to,
@@ -68,6 +69,11 @@ contract ScratchCardTokenV1 is
         uint256 tokenId,
         address auth
     ) internal override(ERC721, ERC721Pausable) returns (address) {
+        // Allow minting (from address(0)) but prevent all transfers
+        address from = _ownerOf(tokenId);
+        if (from != address(0) && to != address(0)) {
+            revert TokenTransferNotAllowed();
+        }
         return super._update(to, tokenId, auth);
     }
 

@@ -9,7 +9,7 @@ import {DailyLotteryNumberLogicV1} from "src/dailylottery/DailyLotteryNumberLogi
 import {LotteryVRFProvider} from "src/dailylottery/lotteryVRFProvider.sol";
 
 contract DailyLotteryTest is Test {
-    address deployer = vm.addr(1);
+    address deployer = makeAddr("deployer");
     DailyLottery public dailyLottery;
     uint96 baseFee = 0.1 ether; // mock base fee
     uint96 gasPriceLink = 1e9; // mock gas price link
@@ -51,7 +51,7 @@ contract DailyLotteryTest is Test {
     }
 
     function test_TakeNumbers_NotEnoughEth() public {
-        address account = vm.addr(1);
+        address account = makeAddr("account");
         vm.deal(account, 0.0009 ether);
 
         vm.prank(account);
@@ -63,7 +63,7 @@ contract DailyLotteryTest is Test {
     }
 
     function test_TakeNumbers_WrongEthValue() public {
-        address account = vm.addr(1);
+        address account = makeAddr("account");
         vm.deal(account, 0.01 ether);
 
         vm.prank(account);
@@ -75,7 +75,7 @@ contract DailyLotteryTest is Test {
     }
 
     function test_TakeNumbers_AlreadyDrawing() public {
-        address account = vm.addr(1);
+        address account = makeAddr("account");
         vm.deal(account, 100 ether);
 
         // take numbers
@@ -99,7 +99,7 @@ contract DailyLotteryTest is Test {
     }
 
     function test_TakeNumbers() public {
-        address account = vm.addr(1);
+        address account = makeAddr("account");
         vm.deal(account, 100 ether);
 
         // take numbers
@@ -123,7 +123,7 @@ contract DailyLotteryTest is Test {
 
     function test_drawLottery_AlreadyDrawing() public {
         // take numbers
-        address account = vm.addr(1);
+        address account = makeAddr("account");
         vm.deal(account, 10 ether);
 
         vm.prank(account);
@@ -145,7 +145,7 @@ contract DailyLotteryTest is Test {
 
     function test_draw_lottery() public {
         // mock multiple transactions
-        address account = vm.addr(1);
+        address account = makeAddr("account");
         vm.deal(account, 10 ether);
 
         vm.prank(account);
@@ -154,7 +154,7 @@ contract DailyLotteryTest is Test {
         );
         assertTrue(success);
 
-        address account2 = vm.addr(2);
+        address account2 = makeAddr("account2");
         vm.deal(account2, 10 ether);
 
         vm.prank(account2);

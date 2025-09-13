@@ -3,7 +3,6 @@
 pragma solidity ^0.8.30;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC721Pausable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -46,25 +45,7 @@ contract DailyLotteryTokenV1 is
         allowedMinter = minter;
     }
 
-    // the transfer of tokens is not allowed.
-    error TransferDisabled(address from, address to, uint256 tokenId);
-
-    function transferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public pure override(IERC721, ERC721) {
-        revert TransferDisabled(from, to, tokenId);
-    }
-
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory /* unused param*/
-    ) public pure override(IERC721, ERC721) {
-        revert TransferDisabled(from, to, tokenId);
-    }
+    error TokenTransferNotAllowed();
 
     // The following functions are overrides required by Solidity.
 
@@ -73,6 +54,11 @@ contract DailyLotteryTokenV1 is
         uint256 tokenId,
         address auth
     ) internal override(ERC721, ERC721Pausable) returns (address) {
+        // Allow minting (from address(0)) but prevent all transfers
+        address from = _ownerOf(tokenId);
+        if (from != address(0) && to != address(0)) {
+            revert TokenTransferNotAllowed();
+        }
         return super._update(to, tokenId, auth);
     }
 
