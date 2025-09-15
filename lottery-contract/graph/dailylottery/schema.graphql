@@ -1,0 +1,20 @@
+type LotteryDrawn @entity(immutable: true) {
+  id: Bytes!
+  lotteryNumber: BigInt! # uint64
+  winningNumber: BigInt! # uint64
+  winner: Bytes! # address
+  fee: BigInt! # uint256
+  prize: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type OwnershipTransferred @entity(immutable: true) {
+  id: Bytes!
+  previousOwner: Bytes! # address
+  newOwner: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}

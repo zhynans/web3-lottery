@@ -52,9 +52,9 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
 
     // event for lottery drawn
     event LotteryDrawn(
-        uint64 lotteryNumber,
-        uint64 winningNumber,
-        address winner,
+        uint64 indexed lotteryNumber,
+        uint64 indexed winningNumber,
+        address indexed winner,
         uint256 fee,
         uint256 prize
     );

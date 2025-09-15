@@ -1,0 +1,8 @@
+{
+  "sepolia": {
+    "DailyLottery": {
+      "address": "0x381067999c393eFF7392DaDA6ca91D3b549a7654",
+      "startBlock": 9192999
+    }
+  }
+}
