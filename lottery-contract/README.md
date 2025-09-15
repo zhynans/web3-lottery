@@ -29,9 +29,15 @@ Foundry 默认 不会自动加载 .env，需要在 shell 中加载：
 $ source .env
 ```
 
-部署脚本：
+本地部署脚本脚本：
 
 ```shell
-$ forge script --chain sepolia script/DeployDailyLottery.s.sol --rpc-url $SEPOLIA_RPC_URL -vvvv --broadcast --verify
-$ forge script --chain sepolia script/DeployScratchCard.s.sol --rpc-url $SEPOLIA_RPC_URL -vvvv --broadcast --verify
+$ forge script script/LocalDeployDailyLottery.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
+```
+
+sepolia部署脚本：
+
+```shell
+$ forge script --chain sepolia script/DeployDailyLottery.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script --chain sepolia script/DeployScratchCard.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
 ```

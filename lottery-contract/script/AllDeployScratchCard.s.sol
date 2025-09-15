@@ -10,7 +10,7 @@ import {ScratchCardTokenV1} from "src/scratchcard/ScratchCardTokenV1.sol";
 import {ScratchCardVRFProvider} from "src/scratchcard/ScratchCardVRFProvider.sol";
 import {ScratchCard} from "src/ScratchCard.sol";
 
-contract DeployScratchCard is Script {
+contract AllDeployScratchCard is Script {
     function run() public returns (ScratchCard scratchCard) {
         // env variables
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY_1");

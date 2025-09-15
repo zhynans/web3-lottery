@@ -6,7 +6,7 @@ import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VR
 import {DailyLottery} from "src/DailyLottery.sol";
 import {DailyLotteryTokenV1} from "src/dailylottery/DailyLotteryTokenV1.sol";
 import {DailyLotteryNumberLogicV1} from "src/dailylottery/DailyLotteryNumberLogicV1.sol";
-import {LotteryVRFProvider} from "src/dailylottery/lotteryVRFProvider.sol";
+import {DailyLotteryVRFProvider} from "src/dailylottery/DailyLotteryVRFProvider.sol";
 import {LotteryDrawState} from "src/dailylottery/DailyLotteryDef.sol";
 
 contract DailyLotteryTest is Test {
@@ -16,7 +16,7 @@ contract DailyLotteryTest is Test {
     uint96 gasPriceLink = 1e9; // mock gas price link
     int256 weiPerUnitLink = 4e15; // 0.004 ether per LINK, aligns with mocks
     VRFCoordinatorV2_5Mock vrfCoordinator;
-    LotteryVRFProvider lotteryVRFProvider;
+    DailyLotteryVRFProvider lotteryVRFProvider;
     uint256 subId;
 
     function setUp() public {
@@ -28,7 +28,7 @@ contract DailyLotteryTest is Test {
         vrfCoordinator = new VRFCoordinatorV2_5Mock(baseFee, gasPriceLink, weiPerUnitLink);
 
         subId = vrfCoordinator.createSubscription();
-        lotteryVRFProvider = new LotteryVRFProvider(
+        lotteryVRFProvider = new DailyLotteryVRFProvider(
             address(vrfCoordinator),
             subId,
             bytes32(0) // in mock env, keyHash doesn't matter
@@ -119,7 +119,7 @@ contract DailyLotteryTest is Test {
         uint256 totalAmount = dailyLottery.getTotalAmount(lotteryNumber);
         assertEq(totalAmount, value);
 
-        (uint64[] memory numbers) = abi.decode(data, (uint64[]));
+        uint64[] memory numbers = abi.decode(data, (uint64[]));
         assertEq(numbers.length, value / pricePerNumber);
         assertEq(dailyLottery.getAddressByNumber(lotteryNumber, numbers[0]), account);
     }
@@ -145,7 +145,7 @@ contract DailyLotteryTest is Test {
         assertTrue(success);
 
         // verify the function returned data
-        (uint64[] memory numbers) = abi.decode(data, (uint64[]));
+        uint64[] memory numbers = abi.decode(data, (uint64[]));
         assertTrue(numbers.length > 0);
     }
 

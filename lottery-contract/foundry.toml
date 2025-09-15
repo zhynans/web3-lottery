@@ -10,9 +10,3 @@ exclude_lints = [
     "mixed-case-variable",
     "erc20-unchecked-transfer",
 ]
-
-[rpc_endpoints]
-sepolia = "${SEPOLIA_RPC_URL}"
-
-[etherscan]
-sepolia = { key = "${ETHERSCAN_API_KEY}" }

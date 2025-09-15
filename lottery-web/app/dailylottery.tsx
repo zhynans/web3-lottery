@@ -1,36 +1,84 @@
 "use client";
 
 import { useState } from "react";
+import { parseEther, parseAbi, decodeEventLog } from "viem";
+import { useWriteContract } from "wagmi";
+import { waitForTransactionReceipt } from "wagmi/actions";
+import { getConfig } from "./wagmi";
+
+const price = parseEther("0.001");
+// take numbers abi
+const takeNumbersAbi = parseAbi([
+  "function takeNumbers() payable",
+  "event TakeNumbersEvent(uint64 indexed lotteryNumber, address indexed user, uint64[] numbers)",
+]);
 
 // 天天有奖抽奖功能组件
 export function DailyLotteryDraw() {
   const [selectedTab, setSelectedTab] = useState<"single" | "multiple">(
     "single"
   );
+
   const [ticketCount, setTicketCount] = useState(1);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [numbers, setNumbers] = useState<string[]>([]);
 
-  // 生成一组号码（示例：6位 0-9 数字）
-  const generateTicket = () => {
-    let s = "";
-    for (let i = 0; i < 6; i++) {
-      s += Math.floor(Math.random() * 10).toString();
-    }
-    return s;
-  };
+  // the contract address of take numbers
+  const takeNumbersContractAddress =
+    process.env.CONTRACT_ADDR_DAILYLOTTERY_TAKE_NUMBERS;
+  const { writeContractAsync } = useWriteContract();
 
   const handleDraw = async (count: number) => {
     setIsDrawing(true);
-    // 模拟抽奖过程
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    const list: string[] = Array.from({ length: Math.max(1, count) }, () =>
-      generateTicket()
-    );
-    setNumbers(list);
-    setIsDrawing(false);
-    setIsModalOpen(true);
+
+    try {
+      if (!takeNumbersContractAddress) {
+        throw new Error("未配置合约地址");
+      }
+
+      const totalValue = price * BigInt(count);
+
+      const hash = await writeContractAsync({
+        abi: takeNumbersAbi,
+        address: takeNumbersContractAddress as `0x${string}`,
+        functionName: "takeNumbers",
+        value: totalValue,
+      });
+
+      const receipt = await waitForTransactionReceipt(getConfig(), { hash });
+
+      let parsed: string[] = [];
+      for (const log of receipt.logs) {
+        try {
+          const decoded = decodeEventLog({
+            abi: takeNumbersAbi,
+            data: log.data,
+            topics: log.topics,
+          });
+
+          if (decoded.eventName === "TakeNumbersEvent") {
+            const nums = (decoded.args as any).numbers as readonly bigint[];
+            parsed = nums.map((n) => n.toString());
+            break;
+          }
+        } catch {
+          // 非本事件日志，忽略
+        }
+      }
+
+      if (parsed.length === 0) {
+        throw new Error("交易失败，请稍后重试");
+      }
+
+      setNumbers(parsed);
+      setIsModalOpen(true);
+    } catch (err) {
+      console.error(err);
+      alert((err as Error).message || "抽号失败，请稍后重试");
+    } finally {
+      setIsDrawing(false);
+    }
   };
 
   const closeModal = () => {

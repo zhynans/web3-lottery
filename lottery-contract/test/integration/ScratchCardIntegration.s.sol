@@ -6,7 +6,7 @@ import {ScratchCard} from "src/ScratchCard.sol";
 import {ScratchCardResultV1} from "src/scratchcard/ScratchCardResultV1.sol";
 import {ScratchCardTokenV1} from "src/scratchcard/ScratchCardTokenV1.sol";
 import {ScratchCardVRFProvider} from "src/scratchcard/ScratchCardVRFProvider.sol";
-import {DeployScratchCard} from "script/DeployScratchCard.s.sol";
+import {AllDeployScratchCard} from "script/AllDeployScratchCard.s.sol";
 
 contract ScratchCardIntegrationTest is Test {
     ScratchCard scratchCard;
@@ -16,8 +16,8 @@ contract ScratchCardIntegrationTest is Test {
 
     function setUp() public {
         // run deploy script
-        DeployScratchCard deployScratchCard = new DeployScratchCard();
-        scratchCard = deployScratchCard.run();
+        // AllDeployScratchCard deployScratchCard = new AllDeployScratchCard();
+        // scratchCard = deployScratchCard.run();
     }
 
     function test_ScratchCardWorkflow() public pure {

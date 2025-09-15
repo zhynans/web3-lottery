@@ -5,18 +5,18 @@ import {Test} from "forge-std/Test.sol";
 import {DailyLottery} from "src/DailyLottery.sol";
 import {DailyLotteryTokenV1} from "src/dailylottery/DailyLotteryTokenV1.sol";
 import {DailyLotteryNumberLogicV1} from "src/dailylottery/DailyLotteryNumberLogicV1.sol";
-import {LotteryVRFProvider} from "src/dailylottery/lotteryVRFProvider.sol";
-import {DeployDailyLottery} from "script/DeployDailyLottery.s.sol";
+import {DailyLotteryVRFProvider} from "src/dailylottery/DailyLotteryVRFProvider.sol";
+import {AllDeployDailyLottery} from "script/AllDeployDailyLottery.s.sol";
 
 contract DailyLotteryIntegrationTest is Test {
     DailyLottery dailyLottery;
     DailyLotteryNumberLogicV1 dailyLotteryNumberLogicV1;
     DailyLotteryTokenV1 dailyLotteryTokenV1;
-    LotteryVRFProvider lotteryVRFProvider;
+    DailyLotteryVRFProvider lotteryVRFProvider;
 
     function setUp() public {
         // run deploy script
-        // DeployDailyLottery deployDailyLottery = new DeployDailyLottery();
+        // AllDeployDailyLottery deployDailyLottery = new AllDeployDailyLottery();
         // dailyLottery = deployDailyLottery.run();
     }
 

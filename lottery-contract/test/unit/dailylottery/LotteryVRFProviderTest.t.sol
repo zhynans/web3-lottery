@@ -3,11 +3,11 @@ pragma solidity ^0.8.30;
 
 import {Test} from "forge-std/Test.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
-import {LotteryVRFProvider} from "src/dailylottery/lotteryVRFProvider.sol";
+import {DailyLotteryVRFProvider} from "src/dailylottery/DailyLotteryVRFProvider.sol";
 import {LotteryRandCallbackMock} from "./LotteryRandCallbackMock.sol";
 
 contract LotteryVRFProviderTest is Test {
-    LotteryVRFProvider public lotteryVRFProvider;
+    DailyLotteryVRFProvider public lotteryVRFProvider;
     VRFCoordinatorV2_5Mock public vrfCoordinator;
     LotteryRandCallbackMock public callback;
     uint256 public subId;
@@ -18,7 +18,7 @@ contract LotteryVRFProviderTest is Test {
     function setUp() public {
         vrfCoordinator = new VRFCoordinatorV2_5Mock(baseFee, gasPriceLink, weiPerUnitLink);
         subId = vrfCoordinator.createSubscription();
-        lotteryVRFProvider = new LotteryVRFProvider(
+        lotteryVRFProvider = new DailyLotteryVRFProvider(
             address(vrfCoordinator),
             subId,
             bytes32(0) // in mock env, keyHash doesn't matter
@@ -32,7 +32,7 @@ contract LotteryVRFProviderTest is Test {
 
     function test_RequestRandomNumberOnAlreadyRequested() public {
         lotteryVRFProvider.requestRandomNumbers(1);
-        vm.expectRevert(LotteryVRFProvider.VRFRequestAlreadyRequested.selector);
+        vm.expectRevert(DailyLotteryVRFProvider.VRFRequestAlreadyRequested.selector);
         lotteryVRFProvider.requestRandomNumbers(1);
     }
 

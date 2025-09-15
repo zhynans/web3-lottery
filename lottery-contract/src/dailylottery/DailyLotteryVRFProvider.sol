@@ -6,7 +6,7 @@ import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/V
 import {IDailyLotteryRandProvider} from "./interface/IDailyLotteryRand.sol";
 import {IDailyLotteryRandCallback} from "./interface/IDailyLotteryRand.sol";
 
-contract LotteryVRFProvider is IDailyLotteryRandProvider, VRFConsumerBaseV2Plus {
+contract DailyLotteryVRFProvider is IDailyLotteryRandProvider, VRFConsumerBaseV2Plus {
     IDailyLotteryRandCallback public callback;
 
     // VRF variables
