@@ -7,6 +7,7 @@ import {DailyLottery} from "src/DailyLottery.sol";
 import {DailyLotteryTokenV1} from "src/dailylottery/DailyLotteryTokenV1.sol";
 import {DailyLotteryNumberLogicV1} from "src/dailylottery/DailyLotteryNumberLogicV1.sol";
 import {LotteryVRFProvider} from "src/dailylottery/lotteryVRFProvider.sol";
+import {LotteryDrawState} from "src/dailylottery/DailyLotteryDef.sol";
 
 contract DailyLotteryTest is Test {
     address deployer = makeAddr("deployer");
@@ -86,9 +87,12 @@ contract DailyLotteryTest is Test {
         assertTrue(success);
 
         // draw lottery
+        vm.warp(block.timestamp + 1 days); // warp forward 1 day, which is more than minDrawInterval
+
         vm.prank(dailyLottery.owner());
         dailyLottery.drawLottery();
-        assertTrue(dailyLottery.isDrawing());
+        LotteryDrawState drawState = dailyLottery.getDrawState(dailyLottery.lotteryNumber());
+        assertTrue(drawState == LotteryDrawState.Drawing);
 
         // take numbers again
         vm.prank(account);
@@ -111,14 +115,38 @@ contract DailyLotteryTest is Test {
         assertTrue(success);
 
         uint64 lotteryNumber = dailyLottery.lotteryNumber();
-        (, uint256 pricePerNumber, , uint256 totalAmount, , ) = dailyLottery.lotterys(
-            lotteryNumber
-        );
+        uint256 pricePerNumber = dailyLottery.getPricePerNumber(lotteryNumber);
+        uint256 totalAmount = dailyLottery.getTotalAmount(lotteryNumber);
         assertEq(totalAmount, value);
 
         (uint64[] memory numbers) = abi.decode(data, (uint64[]));
         assertEq(numbers.length, value / pricePerNumber);
         assertEq(dailyLottery.getAddressByNumber(lotteryNumber, numbers[0]), account);
+    }
+
+    function test_TakeNumbers_EmitsEvent() public {
+        address account = makeAddr("account");
+        vm.deal(account, 100 ether);
+
+        uint64 expectedLotteryNumber = dailyLottery.lotteryNumber();
+        uint256 value = 0.01 ether;
+
+        // expect the TakeNumbersEvent to be emitted
+        // We check the indexed parameters (lotteryNumber and user) exactly
+        // and ignore the non-indexed parameter (numbers array)
+        vm.expectEmit(true, true, false, false, address(dailyLottery));
+        emit DailyLottery.TakeNumbersEvent(expectedLotteryNumber, account, new uint64[](0));
+
+        // take numbers
+        vm.prank(account);
+        (bool success, bytes memory data) = address(dailyLottery).call{value: value}(
+            abi.encodeWithSignature("takeNumbers()")
+        );
+        assertTrue(success);
+
+        // verify the function returned data
+        (uint64[] memory numbers) = abi.decode(data, (uint64[]));
+        assertTrue(numbers.length > 0);
     }
 
     function test_drawLottery_AlreadyDrawing() public {
@@ -133,13 +161,40 @@ contract DailyLotteryTest is Test {
         assertTrue(success);
 
         // draw lottery
+        vm.warp(block.timestamp + 1 days); // warp forward 1 day, which is more than minDrawInterval
+
         vm.prank(dailyLottery.owner());
         dailyLottery.drawLottery();
-        assertTrue(dailyLottery.isDrawing());
+        LotteryDrawState drawState = dailyLottery.getDrawState(dailyLottery.lotteryNumber());
+        assertTrue(drawState == LotteryDrawState.Drawing);
 
         // draw lottery again
         vm.prank(dailyLottery.owner());
         vm.expectRevert(DailyLottery.DrawingInProgress.selector);
+        dailyLottery.drawLottery();
+    }
+
+    function test_drawLottery_MinDrawIntervalNotMet() public {
+        // take numbers for lottery
+        address account = makeAddr("account");
+        vm.deal(account, 10 ether);
+
+        vm.prank(account);
+        (bool success, ) = address(dailyLottery).call{value: 0.05 ether}(
+            abi.encodeWithSignature("takeNumbers()")
+        );
+        assertTrue(success);
+
+        // warp forward but not enough time (less than minDrawInterval)
+        // minDrawInterval is 1 days - 5 minutes = 86100 seconds
+        // let's wait only 1 hour = 3600 seconds, which is much less than 86100
+        vm.warp(block.timestamp + 1 hours);
+
+        // draw lottery - should fail because not enough time has passed
+        vm.prank(dailyLottery.owner());
+        vm.expectRevert(
+            abi.encodeWithSelector(DailyLottery.MinDrawIntervalNotMet.selector, 1, 3601)
+        );
         dailyLottery.drawLottery();
     }
 
@@ -165,11 +220,13 @@ contract DailyLotteryTest is Test {
 
         // draw lottery
         uint64 oldLotteryNumber = dailyLottery.lotteryNumber();
-        vm.startPrank(dailyLottery.owner());
-        dailyLottery.drawLottery();
-        vm.stopPrank();
+        vm.warp(block.timestamp + 1 days); // warp forward 1 day, which is more than minDrawInterval
 
-        assertTrue(dailyLottery.isDrawing());
+        vm.prank(dailyLottery.owner());
+        dailyLottery.drawLottery();
+
+        LotteryDrawState drawState = dailyLottery.getDrawState(dailyLottery.lotteryNumber());
+        assertTrue(drawState == LotteryDrawState.Drawing);
         assertTrue(dailyLottery.lotteryNumber() == oldLotteryNumber);
 
         uint256 requestId = lotteryVRFProvider.vrfRequestId();
@@ -189,7 +246,8 @@ contract DailyLotteryTest is Test {
         vrfCoordinator.fulfillRandomWords(requestId, address(lotteryVRFProvider));
 
         // check if the lottery is drawn
-        assertTrue(!dailyLottery.isDrawing());
+        LotteryDrawState finalDrawState = dailyLottery.getDrawState(oldLotteryNumber);
+        assertTrue(finalDrawState == LotteryDrawState.Drawn);
         assertEq(dailyLottery.lotteryNumber(), oldLotteryNumber + 1);
 
         DailyLottery.WinnerData memory winnerData = dailyLottery.getWinnerData(oldLotteryNumber);

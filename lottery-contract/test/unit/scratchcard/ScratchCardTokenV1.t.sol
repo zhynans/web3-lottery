@@ -4,7 +4,6 @@ pragma solidity ^0.8.30;
 import {Test} from "forge-std/Test.sol";
 import {ScratchCardTokenV1} from "src/scratchcard/ScratchCardTokenV1.sol";
 import {ScratchCardPrize} from "src/scratchcard/ScratchCardDef.sol";
-import {IScratchCardToken} from "src/scratchcard/interface/IScratchCardToken.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 contract ScratchCardTokenV1Test is Test {

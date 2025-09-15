@@ -6,6 +6,7 @@ import {IDailyLotteryToken} from "./dailylottery/interface/IDailyLotteryToken.so
 import {IDailyLotteryNumberLogic} from "./dailylottery/interface/IDailyLotteryNumberLogic.sol";
 import {IDailyLotteryRandProvider} from "./dailylottery/interface/IDailyLotteryRand.sol";
 import {IDailyLotteryRandCallback} from "./dailylottery/interface/IDailyLotteryRand.sol";
+import {LotteryDrawState} from "./dailylottery/DailyLotteryDef.sol";
 
 contract DailyLottery is Ownable, IDailyLotteryRandCallback {
     IDailyLotteryToken public nft; // nft
@@ -16,8 +17,7 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
 
     uint256 public pricePerNumber = 0.001 ether; // price per number
     uint8 public feeRate = 5; // fee rate
-
-    bool public isDrawing = false; // VRF is drawing
+    uint64 public minDrawInterval = 1 days - 5 minutes; // min interval between two lotteries
 
     struct WinnerData {
         address winner; // the address of the winner
@@ -36,25 +36,31 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         uint256 totalAmount;
         uint256 fee;
         uint256 prize;
+        LotteryDrawState drawState;
+        uint256 drawTime;
     }
 
     // store every lottery data
     mapping(uint64 => LotteryData) public lotterys;
-    mapping(uint64 => mapping(address => uint64[])) public userToNumbers; // move it to off-chain later
     mapping(uint64 => mapping(uint64 => address)) public numberToUser;
 
     error NotEnoughEth(uint256 value);
     error WrongEthValue(uint256 value);
-    error DrawingInProgress();
     error NoNumbersToDraw();
+
+    error DrawingInProgress();
+    error MinDrawIntervalNotMet(uint256 startTime, uint256 currentTime);
 
     error TransferFailed(uint256 value);
 
+    // event for take numbers
+    event TakeNumbersEvent(uint64 indexed lotteryNumber, address indexed user, uint64[] numbers);
+
     // event for lottery drawn
-    event LotteryDrawn(
+    event LotteryDrawnEvent(
         uint64 indexed lotteryNumber,
-        uint64 indexed winningNumber,
         address indexed winner,
+        uint64 winningNumber,
         uint256 fee,
         uint256 prize
     );
@@ -69,10 +75,12 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         randProvider = IDailyLotteryRandProvider(_randProviderAddress);
 
         // initialize lottery data
-        initLotteryData();
+        initNextLotteryData();
     }
 
-    function initLotteryData() private {
+    // ============ Lottery Data Functions ============
+
+    function initNextLotteryData() private {
         lotteryNumber++;
 
         // since LotteryData structure contains mapping, it cannot be directly assigned using struct literal
@@ -81,17 +89,30 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         lotteryData.pricePerNumber = pricePerNumber;
         lotteryData.feeRate = feeRate;
         lotteryData.totalAmount = 0;
+        lotteryData.drawState = LotteryDrawState.NotDrawn;
+        lotteryData.drawTime = block.timestamp; // it represents the start time of the lottery before drawn
 
         numberLogic.initNumberLogic();
     }
 
+    function drawLotteryData(LotteryData storage lotteryData) private {
+        lotteryData.drawState = LotteryDrawState.Drawing;
+    }
+
+    function finishLotteryData(LotteryData storage lotteryData) private {
+        lotteryData.drawState = LotteryDrawState.Drawn;
+        lotteryData.drawTime = block.timestamp;
+    }
+
     // take numbers
     function takeNumbers() external payable returns (uint64[] memory) {
-        if (isDrawing) {
+        LotteryData storage lotteryData = lotterys[lotteryNumber];
+
+        // check draw state
+        if (lotteryData.drawState == LotteryDrawState.Drawing) {
             revert DrawingInProgress();
         }
 
-        LotteryData storage lotteryData = lotterys[lotteryNumber];
         uint256 _pricePerNumber = lotteryData.pricePerNumber; // get price per number
 
         // check if the value is correct
@@ -103,33 +124,42 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         uint64[] memory numbers = numberLogic.takeNumbers(nums);
 
         // add numbers into lottery data
-        uint64[] storage refUserToNumbers = userToNumbers[lotteryNumber][msg.sender];
         for (uint64 i = 0; i < numbers.length; i++) {
-            refUserToNumbers.push(numbers[i]);
             numberToUser[lotteryNumber][numbers[i]] = msg.sender;
         }
 
         // add amount into prize pool
         lotteryData.totalAmount = lotteryData.totalAmount + msg.value;
 
+        // emit event for take numbers
+        emit TakeNumbersEvent(lotteryNumber, msg.sender, numbers);
+
         return numbers;
     }
 
     // draw lottery
     function drawLottery() external onlyOwner {
-        if (isDrawing) {
+        LotteryData storage lotteryData = lotterys[lotteryNumber];
+
+        // check draw state
+        if (lotteryData.drawState == LotteryDrawState.Drawing) {
             revert DrawingInProgress();
+        }
+        // check draw time
+        if (block.timestamp - lotteryData.drawTime < minDrawInterval) {
+            revert MinDrawIntervalNotMet(lotteryData.drawTime, block.timestamp);
         }
 
         // if no one take numbers, skip drawing
         if (!numberLogic.canDraw()) {
-            lotteryNumber++;
-            emit LotteryDrawn(lotteryNumber, 0, address(0), 0, 0);
+            finishLotteryData(lotteryData);
+            initNextLotteryData();
+            emit LotteryDrawnEvent(lotteryNumber, address(0), 0, 0, 0);
             return;
         }
 
         // set drawing state
-        isDrawing = true;
+        drawLotteryData(lotteryData);
 
         // request a random number
         randProvider.requestRandomNumbers(1);
@@ -163,12 +193,13 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
             lotteryNumber: lotteryNumber
         });
 
-        emit LotteryDrawn(lotteryNumber, winningNumber, winner, fee, prize);
+        // finish lottery data
+        finishLotteryData(lotterys[lotteryNumber]);
 
-        // reset state, prepare for next lottery
-        initLotteryData();
+        emit LotteryDrawnEvent(lotteryNumber, winner, winningNumber, fee, prize);
 
-        isDrawing = false;
+        //  prepare for next lottery data
+        initNextLotteryData();
     }
 
     function _handleFeeAndPrize(address winner) private returns (uint256 fee, uint256 prize) {
@@ -204,7 +235,7 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         nft = IDailyLotteryToken(_nftAddress);
     }
 
-    // getter functions
+    // ============= getter functions =============
 
     function getAddressByNumber(
         uint64 _lotteryNumber,
@@ -215,5 +246,21 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
 
     function getWinnerData(uint64 _lotteryNumber) public view returns (WinnerData memory) {
         return winners[_lotteryNumber];
+    }
+
+    function getTotalAmount(uint64 _lotteryNumber) public view returns (uint256) {
+        return lotterys[_lotteryNumber].totalAmount;
+    }
+
+    function getDrawState(uint64 _lotteryNumber) public view returns (LotteryDrawState) {
+        return lotterys[_lotteryNumber].drawState;
+    }
+
+    function getPricePerNumber(uint64 _lotteryNumber) public view returns (uint256) {
+        return lotterys[_lotteryNumber].pricePerNumber;
+    }
+
+    function getFeeRate(uint64 _lotteryNumber) public view returns (uint8) {
+        return lotterys[_lotteryNumber].feeRate;
     }
 }

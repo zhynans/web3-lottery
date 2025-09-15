@@ -8,7 +8,7 @@ dataSources:
     name: DailyLottery
     network: sepolia
     source:
-      address: "0x381067999c393eFF7392DaDA6ca91D3b549a7654"
+      address: "0x421cadB719848a50c25982896037567DD4264FF2"
       abi: DailyLottery
       startBlock: 9192999
     mapping:
@@ -17,13 +17,13 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - LotteryDrawn
-        - OwnershipTransferred
+        - TakeNumbers
       abis:
         - name: DailyLottery
           file: ./abis/DailyLottery.json
       eventHandlers:
-        - event: LotteryDrawn(uint64,uint64,address,uint256,uint256)
+        - event: LotteryDrawnEvent(indexed uint64,indexed address,uint64,uint256,uint256)
           handler: handleLotteryDrawn
-        - event: OwnershipTransferred(indexed address,indexed address)
-          handler: handleOwnershipTransferred
+        - event: TakeNumbersEvent(indexed uint64,indexed address,uint64[])
+          handler: handleTakeNumbers
       file: ./src/daily-lottery.ts

@@ -1,351 +1,645 @@
 [
   {
+    "type": "constructor",
     "inputs": [
-      { "internalType": "address", "name": "_nftAddress", "type": "address" },
       {
-        "internalType": "address",
+        "name": "_nftAddress",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
         "name": "_numberLogicAddress",
-        "type": "address"
+        "type": "address",
+        "internalType": "address"
       },
       {
-        "internalType": "address",
         "name": "_randProviderAddress",
-        "type": "address"
+        "type": "address",
+        "internalType": "address"
       }
     ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  { "inputs": [], "name": "DrawingInProgress", "type": "error" },
-  { "inputs": [], "name": "NoNumbersToDraw", "type": "error" },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "value", "type": "uint256" }
-    ],
-    "name": "NotEnoughEth",
-    "type": "error"
+    "stateMutability": "nonpayable"
   },
   {
-    "inputs": [
-      { "internalType": "address", "name": "sender", "type": "address" }
-    ],
-    "name": "OnlyRandProvider",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      { "internalType": "address", "name": "owner", "type": "address" }
-    ],
-    "name": "OwnableInvalidOwner",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      { "internalType": "address", "name": "account", "type": "address" }
-    ],
-    "name": "OwnableUnauthorizedAccount",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "value", "type": "uint256" }
-    ],
-    "name": "TransferFailed",
-    "type": "error"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "value", "type": "uint256" }
-    ],
-    "name": "WrongEthValue",
-    "type": "error"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "uint64",
-        "name": "lotteryNumber",
-        "type": "uint64"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint64",
-        "name": "winningNumber",
-        "type": "uint64"
-      },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "winner",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "fee",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "prize",
-        "type": "uint256"
-      }
-    ],
-    "name": "LotteryDrawn",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "previousOwner",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "newOwner",
-        "type": "address"
-      }
-    ],
-    "name": "OwnershipTransferred",
-    "type": "event"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "_randomNumber", "type": "uint256" }
-    ],
+    "type": "function",
     "name": "callbackFromRand",
+    "inputs": [
+      {
+        "name": "_randomNumber",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
     "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    "stateMutability": "nonpayable"
   },
   {
-    "inputs": [],
+    "type": "function",
     "name": "drawLottery",
+    "inputs": [],
     "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    "stateMutability": "nonpayable"
   },
   {
-    "inputs": [],
+    "type": "function",
     "name": "feeRate",
-    "outputs": [{ "internalType": "uint8", "name": "", "type": "uint8" }],
-    "stateMutability": "view",
-    "type": "function"
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
-    "inputs": [
-      { "internalType": "uint64", "name": "_lotteryNumber", "type": "uint64" },
-      { "internalType": "uint64", "name": "_number", "type": "uint64" }
-    ],
+    "type": "function",
     "name": "getAddressByNumber",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
-      { "internalType": "uint64", "name": "_lotteryNumber", "type": "uint64" }
-    ],
-    "name": "getWinnerData",
-    "outputs": [
       {
-        "components": [
-          { "internalType": "address", "name": "winner", "type": "address" },
-          { "internalType": "uint256", "name": "tokenId", "type": "uint256" },
-          { "internalType": "uint64", "name": "number", "type": "uint64" },
-          {
-            "internalType": "uint64",
-            "name": "lotteryNumber",
-            "type": "uint64"
-          }
-        ],
-        "internalType": "struct DailyLottery.WinnerData",
-        "name": "",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "isDrawing",
-    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "lotteryNumber",
-    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
-    "name": "lotterys",
-    "outputs": [
-      { "internalType": "uint64", "name": "lotteryNumber", "type": "uint64" },
-      {
-        "internalType": "uint256",
-        "name": "pricePerNumber",
-        "type": "uint256"
+        "name": "_lotteryNumber",
+        "type": "uint64",
+        "internalType": "uint64"
       },
-      { "internalType": "uint8", "name": "feeRate", "type": "uint8" },
-      { "internalType": "uint256", "name": "totalAmount", "type": "uint256" },
-      { "internalType": "uint256", "name": "fee", "type": "uint256" },
-      { "internalType": "uint256", "name": "prize", "type": "uint256" }
+      {
+        "name": "_number",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
     ],
-    "stateMutability": "view",
-    "type": "function"
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
+    "type": "function",
+    "name": "getDrawState",
+    "inputs": [
+      {
+        "name": "_lotteryNumber",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "enum LotteryDrawState"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getFeeRate",
+    "inputs": [
+      {
+        "name": "_lotteryNumber",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPricePerNumber",
+    "inputs": [
+      {
+        "name": "_lotteryNumber",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getTotalAmount",
+    "inputs": [
+      {
+        "name": "_lotteryNumber",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getWinnerData",
+    "inputs": [
+      {
+        "name": "_lotteryNumber",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct DailyLottery.WinnerData",
+        "components": [
+          {
+            "name": "winner",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "tokenId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "number",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "lotteryNumber",
+            "type": "uint64",
+            "internalType": "uint64"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "lotteryNumber",
     "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "lotterys",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "lotteryNumber",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "pricePerNumber",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "feeRate",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "totalAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "fee",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "prize",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "drawState",
+        "type": "uint8",
+        "internalType": "enum LotteryDrawState"
+      },
+      {
+        "name": "drawTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "minDrawInterval",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "nft",
+    "inputs": [],
     "outputs": [
       {
-        "internalType": "contract IDailyLotteryToken",
         "name": "",
-        "type": "address"
+        "type": "address",
+        "internalType": "contract IDailyLotteryToken"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
+    "stateMutability": "view"
   },
   {
-    "inputs": [],
+    "type": "function",
     "name": "numberLogic",
+    "inputs": [],
     "outputs": [
       {
-        "internalType": "contract IDailyLotteryNumberLogic",
         "name": "",
-        "type": "address"
+        "type": "address",
+        "internalType": "contract IDailyLotteryNumberLogic"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
+    "stateMutability": "view"
   },
   {
-    "inputs": [
-      { "internalType": "uint64", "name": "", "type": "uint64" },
-      { "internalType": "uint64", "name": "", "type": "uint64" }
-    ],
+    "type": "function",
     "name": "numberToUser",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "owner",
-    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "pricePerNumber",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "randProvider",
-    "outputs": [
+    "inputs": [
       {
-        "internalType": "contract IDailyLotteryRandProvider",
         "name": "",
-        "type": "address"
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
+    "type": "function",
+    "name": "owner",
     "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pricePerNumber",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "randProvider",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IDailyLotteryRandProvider"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "renounceOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "takeNumbers",
-    "outputs": [{ "internalType": "uint64[]", "name": "", "type": "uint64[]" }],
-    "stateMutability": "payable",
-    "type": "function"
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64[]",
+        "internalType": "uint64[]"
+      }
+    ],
+    "stateMutability": "payable"
   },
   {
-    "inputs": [
-      { "internalType": "address", "name": "newOwner", "type": "address" }
-    ],
+    "type": "function",
     "name": "transferOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint8", "name": "_feeRate", "type": "uint8" }
-    ],
-    "name": "updateFeeRate",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "address", "name": "_nftAddress", "type": "address" }
-    ],
-    "name": "updateNftAddress",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_pricePerNumber",
-        "type": "uint256"
+        "name": "newOwner",
+        "type": "address",
+        "internalType": "address"
       }
     ],
-    "name": "updatePricePerNumber",
     "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    "stateMutability": "nonpayable"
   },
   {
+    "type": "function",
+    "name": "updateFeeRate",
     "inputs": [
-      { "internalType": "uint64", "name": "", "type": "uint64" },
-      { "internalType": "address", "name": "", "type": "address" },
-      { "internalType": "uint256", "name": "", "type": "uint256" }
+      {
+        "name": "_feeRate",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
     ],
-    "name": "userToNumbers",
-    "outputs": [{ "internalType": "uint64", "name": "", "type": "uint64" }],
-    "stateMutability": "view",
-    "type": "function"
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
+    "type": "function",
+    "name": "updateNftAddress",
     "inputs": [
-      { "internalType": "uint64", "name": "lotteryNumber", "type": "uint64" }
+      {
+        "name": "_nftAddress",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updatePricePerNumber",
+    "inputs": [
+      {
+        "name": "_pricePerNumber",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "winners",
-    "outputs": [
-      { "internalType": "address", "name": "winner", "type": "address" },
-      { "internalType": "uint256", "name": "tokenId", "type": "uint256" },
-      { "internalType": "uint64", "name": "number", "type": "uint64" },
-      { "internalType": "uint64", "name": "lotteryNumber", "type": "uint64" }
+    "inputs": [
+      {
+        "name": "lotteryNumber",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
     ],
-    "stateMutability": "view",
-    "type": "function"
+    "outputs": [
+      {
+        "name": "winner",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "tokenId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "number",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "lotteryNumber",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "LotteryDrawnEvent",
+    "inputs": [
+      {
+        "name": "lotteryNumber",
+        "type": "uint64",
+        "indexed": true,
+        "internalType": "uint64"
+      },
+      {
+        "name": "winner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "winningNumber",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "fee",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "prize",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnershipTransferred",
+    "inputs": [
+      {
+        "name": "previousOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "TakeNumbersEvent",
+    "inputs": [
+      {
+        "name": "lotteryNumber",
+        "type": "uint64",
+        "indexed": true,
+        "internalType": "uint64"
+      },
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "numbers",
+        "type": "uint64[]",
+        "indexed": false,
+        "internalType": "uint64[]"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "DrawingInProgress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "MinDrawIntervalNotMet",
+    "inputs": [
+      {
+        "name": "startTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "currentTime",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "NoNumbersToDraw",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotEnoughEth",
+    "inputs": [
+      {
+        "name": "value",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "OnlyRandProvider",
+    "inputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "OwnableInvalidOwner",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "OwnableUnauthorizedAccount",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "TransferFailed",
+    "inputs": [
+      {
+        "name": "value",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "WrongEthValue",
+    "inputs": [
+      {
+        "name": "value",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   }
 ]
