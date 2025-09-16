@@ -44,7 +44,6 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
     mapping(uint64 => LotteryData) public lotterys;
     mapping(uint64 => mapping(uint64 => address)) public numberToUser;
 
-    error NotEnoughEth(uint256 value);
     error WrongEthValue(uint256 value);
     error NoNumbersToDraw();
 
@@ -105,7 +104,7 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
     }
 
     // take numbers
-    function takeNumbers() external payable returns (uint64[] memory) {
+    function takeNumbers(uint64 nums) external payable returns (uint64[] memory) {
         LotteryData storage lotteryData = lotterys[lotteryNumber];
 
         // check draw state
@@ -116,11 +115,9 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         uint256 _pricePerNumber = lotteryData.pricePerNumber; // get price per number
 
         // check if the value is correct
-        require(msg.value >= _pricePerNumber, NotEnoughEth(msg.value));
-        require(msg.value % _pricePerNumber == 0, WrongEthValue(msg.value));
+        require(msg.value == _pricePerNumber * nums, WrongEthValue(msg.value));
 
         // generate numbers
-        uint64 nums = uint64(msg.value / _pricePerNumber);
         uint64[] memory numbers = numberLogic.takeNumbers(nums);
 
         // add numbers into lottery data

@@ -9,7 +9,7 @@ import { getConfig } from "./wagmi";
 const price = parseEther("0.001");
 // take numbers abi
 const takeNumbersAbi = parseAbi([
-  "function takeNumbers() payable",
+  "function takeNumbers(uint64 nums) payable",
   "event TakeNumbersEvent(uint64 indexed lotteryNumber, address indexed user, uint64[] numbers)",
 ]);
 
@@ -26,7 +26,7 @@ export function DailyLotteryDraw() {
 
   // the contract address of take numbers
   const takeNumbersContractAddress =
-    process.env.CONTRACT_ADDR_DAILYLOTTERY_TAKE_NUMBERS;
+    process.env.NEXT_PUBLIC_CONTRACT_ADDR_DAILYLOTTERY;
   const { writeContractAsync } = useWriteContract();
 
   const handleDraw = async (count: number) => {
@@ -37,16 +37,33 @@ export function DailyLotteryDraw() {
         throw new Error("未配置合约地址");
       }
 
+      console.log("开始抽奖流程...", {
+        contractAddress: takeNumbersContractAddress,
+        count,
+        price: price.toString(),
+        totalValue: (price * BigInt(count)).toString(),
+      });
+
       const totalValue = price * BigInt(count);
 
+      console.log("发送合约交易...");
       const hash = await writeContractAsync({
         abi: takeNumbersAbi,
         address: takeNumbersContractAddress as `0x${string}`,
         functionName: "takeNumbers",
         value: totalValue,
+        args: [BigInt(count)],
       });
 
+      console.log("交易已发送，等待确认...", { hash });
+
       const receipt = await waitForTransactionReceipt(getConfig(), { hash });
+
+      console.log("交易已确认", {
+        receipt: receipt,
+        status: receipt.status,
+        logs: receipt.logs.length,
+      });
 
       let parsed: string[] = [];
       for (const log of receipt.logs) {
@@ -74,8 +91,25 @@ export function DailyLotteryDraw() {
       setNumbers(parsed);
       setIsModalOpen(true);
     } catch (err) {
-      console.error(err);
-      alert((err as Error).message || "抽号失败，请稍后重试");
+      console.error("抽奖过程中发生错误:", err);
+
+      let errorMessage = "抽号失败，请稍后重试";
+
+      if (err instanceof Error) {
+        if (err.message.includes("timeout")) {
+          errorMessage = "交易超时，请检查网络连接或稍后重试";
+        } else if (err.message.includes("insufficient funds")) {
+          errorMessage = "余额不足，请检查账户余额";
+        } else if (err.message.includes("user rejected")) {
+          errorMessage = "用户取消了交易";
+        } else if (err.message.includes("network")) {
+          errorMessage = "网络连接问题，请检查本地节点是否运行";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
+      alert(errorMessage);
     } finally {
       setIsDrawing(false);
     }

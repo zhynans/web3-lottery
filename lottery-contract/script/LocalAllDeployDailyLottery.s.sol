@@ -7,7 +7,7 @@ import {IDailyLotteryToken} from "src/dailylottery/interface/IDailyLotteryToken.
 import {DailyLotteryTokenV1} from "src/dailylottery/DailyLotteryTokenV1.sol";
 import {DailyLotteryVRFProvider} from "src/dailylottery/DailyLotteryVRFProvider.sol";
 import {DailyLottery} from "src/DailyLottery.sol";
-import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
+import {VRFCoordinatorV2_5Mock} from "script/mock/VRFCoordinatorV2_5Mock.sol";
 
 contract LocalAllDeployDailyLottery is Script {
     uint96 public constant BASE_FEE = 0.1 ether;
@@ -20,6 +20,9 @@ contract LocalAllDeployDailyLottery is Script {
         // env variables
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY_1");
 
+        // roll to a block number
+        vm.roll(100); // issue: https://github.com/Cyfrin/foundry-full-course-cu/discussions/2246
+
         // start broadcast
         vm.startBroadcast(deployerPrivateKey);
 
@@ -30,6 +33,7 @@ contract LocalAllDeployDailyLottery is Script {
         IDailyLotteryToken dailyLotteryToken = new DailyLotteryTokenV1();
 
         // Deploy VRF coordinator mock
+
         VRFCoordinatorV2_5Mock vrfCoordinator = new VRFCoordinatorV2_5Mock(
             BASE_FEE,
             GAS_PRICE_LINK,

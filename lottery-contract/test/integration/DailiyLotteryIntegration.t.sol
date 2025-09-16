@@ -21,7 +21,7 @@ contract DailyLotteryIntegrationTest is Test {
     }
 
     function test_TakeNumbers() public {
-        // dailyLottery.takeNumbers();
+        // dailyLottery.takeNumbers(1);
     }
 
     function test_DrawLottery() public {

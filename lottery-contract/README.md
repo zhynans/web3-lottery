@@ -21,7 +21,7 @@ https://book.getfoundry.sh/
 $ forge test
 ```
 
-### Deploy
+### Local Deploy
 
 Foundry 默认 不会自动加载 .env，需要在 shell 中加载：
 
@@ -29,15 +29,22 @@ Foundry 默认 不会自动加载 .env，需要在 shell 中加载：
 $ source .env
 ```
 
+anvil
+使用自定义的助记词来生成账户。在不同 Anvil 实例之间复用相同账户非常有用。
+
+```shell
+$ anvil --port 8545 --chain-id 31337 --mnemonic "test test test test test test test test test test test junk"
+```
+
 本地部署脚本脚本：
 
 ```shell
-$ forge script script/LocalDeployDailyLottery.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
+$ forge script script/LocalAllDeployDailyLottery.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
 ```
 
 sepolia部署脚本：
 
 ```shell
-$ forge script --chain sepolia script/DeployDailyLottery.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
-$ forge script --chain sepolia script/DeployScratchCard.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script --chain sepolia script/AllDeployDailyLottery.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script --chain sepolia script/AllDeployScratchCard.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
 ```

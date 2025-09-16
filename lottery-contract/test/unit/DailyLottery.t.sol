@@ -51,25 +51,13 @@ contract DailyLotteryTest is Test {
         vm.stopPrank();
     }
 
-    function test_TakeNumbers_NotEnoughEth() public {
-        address account = makeAddr("account");
-        vm.deal(account, 0.0009 ether);
-
-        vm.prank(account);
-        (bool success, ) = address(dailyLottery).call{value: 0.0009 ether}(
-            abi.encodeWithSignature("takeNumbers()")
-        );
-
-        assertTrue(!success);
-    }
-
     function test_TakeNumbers_WrongEthValue() public {
         address account = makeAddr("account");
         vm.deal(account, 0.01 ether);
 
         vm.prank(account);
         (bool success, ) = address(dailyLottery).call{value: 0.0011 ether}(
-            abi.encodeWithSignature("takeNumbers()")
+            abi.encodeWithSignature("takeNumbers(uint64)", 1)
         );
 
         assertTrue(!success);
@@ -82,7 +70,7 @@ contract DailyLotteryTest is Test {
         // take numbers
         vm.prank(account);
         (bool success, ) = address(dailyLottery).call{value: 0.01 ether}(
-            abi.encodeWithSignature("takeNumbers()")
+            abi.encodeWithSignature("takeNumbers(uint64)", 10)
         );
         assertTrue(success);
 
@@ -97,7 +85,7 @@ contract DailyLotteryTest is Test {
         // take numbers again
         vm.prank(account);
         (success, ) = address(dailyLottery).call{value: 0.01 ether}(
-            abi.encodeWithSignature("takeNumbers()")
+            abi.encodeWithSignature("takeNumbers(uint64)", 10)
         );
         assertTrue(!success);
     }
@@ -110,7 +98,7 @@ contract DailyLotteryTest is Test {
         vm.prank(account);
         uint256 value = 0.01 ether;
         (bool success, bytes memory data) = address(dailyLottery).call{value: value}(
-            abi.encodeWithSignature("takeNumbers()")
+            abi.encodeWithSignature("takeNumbers(uint64)", 10)
         );
         assertTrue(success);
 
@@ -140,7 +128,7 @@ contract DailyLotteryTest is Test {
         // take numbers
         vm.prank(account);
         (bool success, bytes memory data) = address(dailyLottery).call{value: value}(
-            abi.encodeWithSignature("takeNumbers()")
+            abi.encodeWithSignature("takeNumbers(uint64)", 10)
         );
         assertTrue(success);
 
@@ -156,7 +144,7 @@ contract DailyLotteryTest is Test {
 
         vm.prank(account);
         (bool success, ) = address(dailyLottery).call{value: 0.05 ether}(
-            abi.encodeWithSignature("takeNumbers()")
+            abi.encodeWithSignature("takeNumbers(uint64)", 50)
         );
         assertTrue(success);
 
@@ -181,7 +169,7 @@ contract DailyLotteryTest is Test {
 
         vm.prank(account);
         (bool success, ) = address(dailyLottery).call{value: 0.05 ether}(
-            abi.encodeWithSignature("takeNumbers()")
+            abi.encodeWithSignature("takeNumbers(uint64)", 50)
         );
         assertTrue(success);
 
@@ -205,7 +193,7 @@ contract DailyLotteryTest is Test {
 
         vm.prank(account);
         (bool success, ) = address(dailyLottery).call{value: 0.05 ether}(
-            abi.encodeWithSignature("takeNumbers()")
+            abi.encodeWithSignature("takeNumbers(uint64)", 50)
         );
         assertTrue(success);
 
@@ -214,7 +202,7 @@ contract DailyLotteryTest is Test {
 
         vm.prank(account2);
         (success, ) = address(dailyLottery).call{value: 0.005 ether}(
-            abi.encodeWithSignature("takeNumbers()")
+            abi.encodeWithSignature("takeNumbers(uint64)", 5)
         );
         assertTrue(success);
 
