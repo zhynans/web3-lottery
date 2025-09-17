@@ -10,11 +10,11 @@ type LotteryDrawn @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-type TakeNumbers @entity(immutable: true) {
+type TakeNumber @entity(immutable: true) {
   id: Bytes!
   lotteryNumber: BigInt! # uint64
   user: Bytes! # address
-  numbers: [BigInt!]! # uint64[]
+  number: BigInt! # uint64
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!

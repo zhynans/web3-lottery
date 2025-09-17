@@ -373,7 +373,13 @@
   {
     "type": "function",
     "name": "takeNumbers",
-    "inputs": [],
+    "inputs": [
+      {
+        "name": "nums",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
     "outputs": [
       {
         "name": "",

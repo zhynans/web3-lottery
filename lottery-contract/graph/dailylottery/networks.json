@@ -4,5 +4,11 @@
       "address": "0x381067999c393eFF7392DaDA6ca91D3b549a7654",
       "startBlock": 9192999
     }
+  },
+  "anvil": {
+    "DailyLottery": {
+      "address": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+      "startBlock": 0
+    }
   }
 }

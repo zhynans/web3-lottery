@@ -193,7 +193,7 @@ export function ScratchCardDraw() {
   }, [isModalOpen, isRevealed]);
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 min-h-[400px] flex flex-col">
+    <div className="bg-white rounded-lg shadow-lg p-6 min-h-[480px] flex flex-col">
       <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
         刮刮乐
       </h2>

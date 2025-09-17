@@ -1,17 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { parseEther, parseAbi, decodeEventLog } from "viem";
-import { useWriteContract } from "wagmi";
+import { useWriteContract, useReadContract, useAccount } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { getConfig } from "./wagmi";
+import { getMyNumbers } from "./graph/dailylottery";
 
 const price = parseEther("0.001");
 // take numbers abi
-const takeNumbersAbi = parseAbi([
+const dailyLotteryAbi = parseAbi([
+  "function lotteryNumber() view returns (uint64)",
   "function takeNumbers(uint64 nums) payable",
   "event TakeNumbersEvent(uint64 indexed lotteryNumber, address indexed user, uint64[] numbers)",
 ]);
+// the contract address of take numbers
+const dailyLotteryContractAddress =
+  process.env.NEXT_PUBLIC_CONTRACT_ADDR_DAILYLOTTERY;
 
 // 天天有奖抽奖功能组件
 export function DailyLotteryDraw() {
@@ -23,53 +28,50 @@ export function DailyLotteryDraw() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [numbers, setNumbers] = useState<string[]>([]);
+  const [drawnNumbersHistory, setDrawnNumbersHistory] = useState<string[]>([]);
 
-  // the contract address of take numbers
-  const takeNumbersContractAddress =
-    process.env.NEXT_PUBLIC_CONTRACT_ADDR_DAILYLOTTERY;
   const { writeContractAsync } = useWriteContract();
+  const { address, isConnected } = useAccount();
+  const [lotteryNumber, setLotteryNumber] = useState<BigInt>(BigInt(0));
 
+  // get lottery number
+  const { data: lotteryNumberData } = useReadContract({
+    address: dailyLotteryContractAddress as `0x${string}`,
+    abi: dailyLotteryAbi,
+    functionName: "lotteryNumber",
+  });
+
+  // take numbers function
   const handleDraw = async (count: number) => {
+    if (!isConnected) {
+      alert("请连接钱包");
+      return;
+    }
+
     setIsDrawing(true);
 
     try {
-      if (!takeNumbersContractAddress) {
+      if (!dailyLotteryContractAddress) {
         throw new Error("未配置合约地址");
       }
 
-      console.log("开始抽奖流程...", {
-        contractAddress: takeNumbersContractAddress,
-        count,
-        price: price.toString(),
-        totalValue: (price * BigInt(count)).toString(),
-      });
-
       const totalValue = price * BigInt(count);
 
-      console.log("发送合约交易...");
       const hash = await writeContractAsync({
-        abi: takeNumbersAbi,
-        address: takeNumbersContractAddress as `0x${string}`,
+        abi: dailyLotteryAbi,
+        address: dailyLotteryContractAddress as `0x${string}`,
         functionName: "takeNumbers",
         value: totalValue,
         args: [BigInt(count)],
       });
 
-      console.log("交易已发送，等待确认...", { hash });
-
       const receipt = await waitForTransactionReceipt(getConfig(), { hash });
-
-      console.log("交易已确认", {
-        receipt: receipt,
-        status: receipt.status,
-        logs: receipt.logs.length,
-      });
 
       let parsed: string[] = [];
       for (const log of receipt.logs) {
         try {
           const decoded = decodeEventLog({
-            abi: takeNumbersAbi,
+            abi: dailyLotteryAbi,
             data: log.data,
             topics: log.topics,
           });
@@ -89,6 +91,8 @@ export function DailyLotteryDraw() {
       }
 
       setNumbers(parsed);
+      // 将新抽取的号码添加到历史记录中
+      setDrawnNumbersHistory((prev) => [...parsed, ...prev]);
       setIsModalOpen(true);
     } catch (err) {
       console.error("抽奖过程中发生错误:", err);
@@ -120,12 +124,31 @@ export function DailyLotteryDraw() {
     setNumbers([]);
   };
 
-  return (
-    <div className="bg-white rounded-lg shadow-lg p-6 min-h-[400px] flex flex-col">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-        天天有奖
-      </h2>
+  useEffect(() => {
+    if (lotteryNumberData) {
+      setLotteryNumber(lotteryNumberData as BigInt);
+    }
+  }, [lotteryNumberData]);
 
+  useEffect(() => {
+    async function fetchMyNumbers() {
+      if (address && lotteryNumber && lotteryNumber !== BigInt(0)) {
+        const data = await getMyNumbers(
+          address as `0x${string}`,
+          lotteryNumber
+        );
+        setDrawnNumbersHistory(data.map((n) => n.toString()));
+      }
+    }
+
+    fetchMyNumbers();
+  }, [address, lotteryNumber]);
+
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-6 min-h-[480px] flex flex-col">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+        第{lotteryNumber?.toString()}期 天天有奖
+      </h2>
       {/* 标签页 */}
       <div className="flex space-x-1 mb-6 bg-gray-100 rounded-lg p-1">
         <button
@@ -149,9 +172,8 @@ export function DailyLotteryDraw() {
           抽多张
         </button>
       </div>
-
       {/* 内容区域 */}
-      <div className="space-y-4 flex-1 flex flex-col justify-center">
+      <div className="space-y-4 flex-1 flex flex-col justify-center min-h-[180px]">
         {selectedTab === "single" && (
           <div className="text-center">
             <p className="text-gray-600 mb-4">
@@ -191,7 +213,6 @@ export function DailyLotteryDraw() {
           </div>
         )}
       </div>
-
       {/* 结果弹窗 */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -246,6 +267,29 @@ export function DailyLotteryDraw() {
           </div>
         </div>
       )}
+      {/* 已抽取号码历史列表 */}
+      <div className="mt-6 border-t border-gray-200 pt-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">
+          我的抽奖记录
+        </h3>
+        <div className="max-h-32 overflow-y-auto">
+          <div className="grid grid-cols-5 gap-2">
+            {drawnNumbersHistory.map((number, index) => (
+              <div
+                key={index}
+                className="p-2 bg-blue-50 border border-blue-200 rounded-lg text-center"
+              >
+                <span className="text-sm font-mono text-blue-700 font-semibold">
+                  {number}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="mt-2 text-xs text-gray-500 text-center">
+          共抽取 {drawnNumbersHistory.length} 张彩票
+        </div>
+      </div>
     </div>
   );
 }
