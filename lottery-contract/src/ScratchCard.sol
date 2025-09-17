@@ -28,8 +28,16 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
     WinnerData[] public smallWinners;
     WinnerData[] public luckyWinners;
 
+    // event for scratch card
+    event ScratchCardEvent(address indexed user, uint256 value, uint256 timestamp);
     // event for lottery result
-    event LotteryResult(address indexed user, ScratchCardPrize prize, uint256 amount);
+    event LotteryResultEvent(
+        address indexed user,
+        ScratchCardPrize prize,
+        uint256 amount,
+        uint256 timestamp,
+        uint256 randomNumber
+    );
 
     constructor(
         address _scratchCardResult,
@@ -52,6 +60,9 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
 
         // request random numbers
         scratchCardRandProvider.requestRandomNumbers(msg.sender);
+
+        // emit scratch card request
+        emit ScratchCardEvent(msg.sender, msg.value, block.timestamp);
     }
 
     // error for only rand provider
@@ -66,7 +77,7 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
 
         // if no prize, return immediately
         if (prize == ScratchCardPrize.NoPrize) {
-            emit LotteryResult(_user, prize, 0);
+            emit LotteryResultEvent(_user, prize, 0, block.timestamp, _randomNumber);
             return;
         }
 
@@ -94,7 +105,7 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
         }
 
         // emit lottery result
-        emit LotteryResult(_user, prize, prizeAmount);
+        emit LotteryResultEvent(_user, prize, prizeAmount, block.timestamp, _randomNumber);
     }
 
     error TransferFailed(uint256 value);

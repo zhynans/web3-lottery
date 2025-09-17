@@ -1,196 +1,80 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { waitForTransactionReceipt } from "wagmi/actions";
+import { useBalance, useAccount, useWriteContract } from "wagmi";
+import { parseEther, formatEther, parseAbi, decodeEventLog } from "viem";
+import { getConfig } from "./wagmi";
+import { ScratchCard } from "./components/ScratchCard";
+import toast from "react-hot-toast";
+
+// 合约地址和ABI（这里需要根据实际合约地址和ABI进行配置）
+const CONTRACT_ADDRESS = process.env
+  .NEXT_PUBLIC_CONTRACT_ADDR_SCRATCHCARD as `0x${string}`;
+const CONTRACT_DEPLOYER = process.env
+  .NEXT_PUBLIC_CONTRACT_DEPLOYER as `0x${string}`;
+
+// 简化的合约ABI，包含获取奖池金额和充值功能
+const CONTRACT_ABI = parseAbi(["function fund() payable"]);
 
 // 刮刮乐刮奖功能组件
 export function ScratchCardDraw() {
-  // 仅保留单张刮奖
-  const [isScratching, setIsScratching] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [results, setResults] = useState<string[]>([]);
-  const [isRevealed, setIsRevealed] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const coverRef = useRef<HTMLDivElement | null>(null);
-  const isPointerDownRef = useRef(false);
-  const moveCounterRef = useRef(0);
+  // 钱包和合约相关
+  const { address, isConnected } = useAccount();
+  const { writeContractAsync } = useWriteContract();
 
-  const randomResult = () => {
-    const r = Math.random();
-    if (r < 0.05) return "大奖";
-    if (r < 0.01) return "小奖";
-    if (r < 0.05) return "幸运奖";
-    return "谢谢惠顾"; // 70%
-  };
+  const [fundingAmount, setFundingAmount] = useState("");
+  const [isFunding, setIsFunding] = useState(false);
 
-  const handleScratch = async (count: number) => {
-    setIsScratching(true);
-    // 模拟刮奖过程
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    const generated: string[] = Array.from({ length: Math.max(1, count) }, () =>
-      randomResult()
-    );
-    setResults(generated);
-    setIsScratching(false);
-    setIsModalOpen(true);
-    setIsRevealed(false);
-  };
+  // 读取奖池金额
+  const { data: poolBalance } = useBalance({
+    address: CONTRACT_ADDRESS,
+    query: {
+      enabled: !!CONTRACT_ADDRESS, // 只有当合约地址存在时才启用查询
+      refetchInterval: 5000, // 每5秒刷新一次
+    },
+  });
 
-  // 初始化/重绘遮罩
-  const paintMask = () => {
-    const canvas = canvasRef.current;
-    const container = coverRef.current;
-    if (!canvas || !container) return;
+  // 检查是否为合约部署者
+  const isDeployer =
+    address &&
+    CONTRACT_DEPLOYER &&
+    address.toLowerCase() === CONTRACT_DEPLOYER.toLowerCase();
 
-    const rect = container.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(rect.height * dpr);
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
+  // 充值奖池处理函数
+  const handleFundPrizePool = async () => {
+    if (!fundingAmount || !CONTRACT_ADDRESS) return;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.scale(dpr, dpr);
-    const radius = 12;
-    const w = rect.width;
-    const h = rect.height;
-    ctx.clearRect(0, 0, w, h);
-    // 绘制银灰遮罩带胶粒效果
-    const gradient = ctx.createLinearGradient(0, 0, w, h);
-    gradient.addColorStop(0, "#c0c0c0");
-    gradient.addColorStop(1, "#9e9e9e");
-    ctx.fillStyle = gradient;
-    // 圆角矩形
-    ctx.beginPath();
-    ctx.moveTo(radius, 0);
-    ctx.lineTo(w - radius, 0);
-    ctx.quadraticCurveTo(w, 0, w, radius);
-    ctx.lineTo(w, h - radius);
-    ctx.quadraticCurveTo(w, h, w - radius, h);
-    ctx.lineTo(radius, h);
-    ctx.quadraticCurveTo(0, h, 0, h - radius);
-    ctx.lineTo(0, radius);
-    ctx.quadraticCurveTo(0, 0, radius, 0);
-    ctx.closePath();
-    ctx.fill();
-
-    // 颗粒点
-    ctx.globalAlpha = 0.15;
-    ctx.fillStyle = "#ffffff";
-    for (let i = 0; i < 150; i++) {
-      const x = Math.random() * w;
-      const y = Math.random() * h;
-      const r = Math.random() * 2 + 0.5;
-      ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
+    if (!isConnected) {
+      toast.error("请连接钱包");
+      return;
     }
-    ctx.globalAlpha = 1;
-  };
 
-  // 关闭弹窗并重置
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setTimeout(() => {
-      setIsRevealed(false);
-      const ctx = canvasRef.current?.getContext("2d");
-      if (ctx) {
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    try {
+      setIsFunding(true);
+
+      // send fund transaction
+      const hash = await writeContractAsync({
+        abi: CONTRACT_ABI,
+        address: CONTRACT_ADDRESS as `0x${string}`,
+        functionName: "fund",
+        value: parseEther(fundingAmount),
+      });
+
+      // wait for transaction receipt
+      const receipt = await waitForTransactionReceipt(getConfig(), { hash });
+      if (receipt.status !== "success") {
+        throw new Error("充值交易未成功，请稍后重试");
+      } else {
+        toast.success("充值成功");
+        setFundingAmount("");
       }
-    }, 200);
-  };
-
-  // 计算已擦除比例
-  const calculateErasedRatio = (): number => {
-    const canvas = canvasRef.current;
-    if (!canvas) return 0;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return 0;
-    const { width, height } = canvas;
-    const imageData = ctx.getImageData(0, 0, width, height);
-    const data = imageData.data;
-    let cleared = 0;
-    for (let i = 3; i < data.length; i += 4) {
-      if (data[i] === 0) cleared++;
-    }
-    return cleared / (width * height);
-  };
-
-  const revealIfThreshold = () => {
-    const ratio = calculateErasedRatio();
-    if (ratio >= 0.5 && !isRevealed) {
-      // 直接清空剩余遮罩
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext("2d");
-      if (ctx && canvas) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-      setIsRevealed(true);
+    } catch (error) {
+      toast.error("充值失败");
+    } finally {
+      setIsFunding(false);
     }
   };
-
-  // 擦除函数
-  const eraseAt = (clientX: number, clientY: number) => {
-    const canvas = canvasRef.current;
-    const container = coverRef.current;
-    if (!canvas || !container) return;
-    const rect = container.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.globalCompositeOperation = "destination-out";
-    const brushRadius = Math.max(18, Math.min(rect.width, rect.height) * 0.05);
-    const dpr = window.devicePixelRatio || 1;
-    ctx.beginPath();
-    ctx.arc(x * dpr, y * dpr, brushRadius * dpr, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalCompositeOperation = "source-over";
-
-    // 降频计算：每移动若干次再评估比例
-    moveCounterRef.current += 1;
-    if (moveCounterRef.current % 10 === 0) revealIfThreshold();
-  };
-
-  // 绑定指针事件
-  useEffect(() => {
-    if (!isModalOpen) return;
-    paintMask();
-    const canvas = canvasRef.current;
-    const container = coverRef.current;
-    if (!canvas || !container) return;
-
-    const onPointerDown = (e: PointerEvent) => {
-      isPointerDownRef.current = true;
-      eraseAt(e.clientX, e.clientY);
-    };
-    const onPointerMove = (e: PointerEvent) => {
-      if (!isPointerDownRef.current || isRevealed) return;
-      eraseAt(e.clientX, e.clientY);
-    };
-    const onPointerUp = () => {
-      if (!isPointerDownRef.current) return;
-      isPointerDownRef.current = false;
-      revealIfThreshold();
-    };
-
-    container.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-
-    // 处理尺寸变化
-    const ro = new ResizeObserver(() => {
-      if (!isRevealed) paintMask();
-    });
-    ro.observe(container);
-
-    return () => {
-      container.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      ro.disconnect();
-    };
-  }, [isModalOpen, isRevealed]);
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 min-h-[480px] flex flex-col">
@@ -200,81 +84,50 @@ export function ScratchCardDraw() {
 
       {/* 内容区域 */}
       <div className="space-y-4 flex-1 flex flex-col justify-center">
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">刮开一张刮刮乐，看看你的运气！</p>
-          <button
-            onClick={() => handleScratch(1)}
-            disabled={isScratching}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            {isScratching ? "刮奖中..." : "刮一张"}
-          </button>
-        </div>
-      </div>
-
-      {/* 结果弹窗 */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
-          <div className="relative z-10 w-[90%] max-w-md bg-white rounded-2xl shadow-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-semibold text-gray-800">
-                刮刮乐结果
-              </h4>
-              <button
-                onClick={closeModal}
-                className="text-gray-500 hover:text-gray-700"
-                aria-label="关闭"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-3 relative" ref={coverRef}>
-              {results.length === 1 ? (
-                <div className="text-center">
-                  <div className="text-3xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-red-500">
-                    {results[0]}
-                  </div>
-                  <p className="text-gray-600">恭喜你获得「{results[0]}」！</p>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">
-                    共刮开 {results.length} 张：
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {results.map((r, i) => (
-                      <div
-                        key={i}
-                        className="p-3 rounded-lg border border-gray-200 text-center"
-                      >
-                        <span className="font-semibold">{r}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {!isRevealed && (
-                <canvas
-                  ref={canvasRef}
-                  className="absolute inset-0 rounded-xl touch-none cursor-pointer"
-                />
-              )}
-            </div>
-
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={closeModal}
-                className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-              >
-                知道了
-              </button>
+        {/* 奖池金额显示区域 */}
+        <div className="text-center mb-6">
+          <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-4 rounded-xl shadow-lg mb-4">
+            <div className="text-sm font-medium mb-1">当前奖池</div>
+            <div className="text-2xl font-bold">
+              {poolBalance
+                ? `${formatEther(poolBalance.value)} ETH`
+                : "加载中..."}
             </div>
           </div>
+
+          {/* 合约部署者充值功能 */}
+          {isDeployer && (
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                充值奖池
+              </h3>
+              <div className="flex flex-col sm:flex-row gap-2 items-center justify-center">
+                <input
+                  type="number"
+                  value={fundingAmount}
+                  onChange={(e) => setFundingAmount(e.target.value)}
+                  placeholder="输入充值金额 (ETH)"
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  step="0.001"
+                  min="0"
+                />
+                <button
+                  onClick={handleFundPrizePool}
+                  disabled={!fundingAmount || isFunding}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isFunding ? "处理中..." : "充值"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+
+        <ScratchCard
+          contractAddress={CONTRACT_ADDRESS}
+          isReady={poolBalance ? poolBalance.value > 0 : false}
+        />
+      </div>
     </div>
   );
 }

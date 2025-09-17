@@ -66,6 +66,31 @@
       },
       {
         "indexed": false,
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "ScratchCardEvent",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
         "internalType": "enum ScratchCardPrize",
         "name": "prize",
         "type": "uint8"
@@ -75,9 +100,21 @@
         "internalType": "uint256",
         "name": "amount",
         "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "randomNumber",
+        "type": "uint256"
       }
     ],
-    "name": "LotteryResult",
+    "name": "LotteryResultEvent",
     "type": "event"
   },
   {

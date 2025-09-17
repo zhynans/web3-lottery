@@ -39,8 +39,9 @@ $ anvil --port 8545 --chain-id 31337 --mnemonic "test test test test test test t
 本地部署脚本脚本：
 Anvil本地链
 
-```shell
+````shell
 $ forge script script/LocalAllDeployDailyLottery.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
+$ forge script script/LocalAllDeployScratchCard.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
 ```
 
 本地The Graph
@@ -48,13 +49,13 @@ $ forge script script/LocalAllDeployDailyLottery.s.sol --rpc-url $CHAIN_RPC_URL 
 ```shell
 $ docker-compose up
 
-$ graph create zhynans-web3-lottery-daily --node http://localhost:8020
-$ graph deploy --node http://localhost:8020 zhynans-web3-lottery-daily --network anvil
+$ graph create zhynans-web3-lottery --node http://localhost:8020
+$ graph deploy --node http://localhost:8020 zhynans-web3-lottery --network anvil
 
-$ graph remove --node http://localhost:8020/ zhynans-web3-lottery-daily
+$ graph remove --node http://localhost:8020/ zhynans-web3-lottery
 
 $ docker-compose down
-```
+````
 
 sepolia部署脚本：
 

@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import "./globals.css";
 
 import { cookieToInitialState } from "wagmi";
+import { Toaster } from "react-hot-toast";
 
 import { getConfig } from "@/app/wagmi";
 import { Providers } from "@/app/providers";
@@ -25,6 +26,7 @@ export default async function RootLayout(props: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>
+        <Toaster />
         <Providers initialState={initialState}>{props.children}</Providers>
       </body>
     </html>

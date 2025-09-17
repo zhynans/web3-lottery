@@ -20,9 +20,6 @@ contract LocalAllDeployDailyLottery is Script {
         // env variables
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY_1");
 
-        // roll to a block number
-        vm.roll(100); // issue: https://github.com/Cyfrin/foundry-full-course-cu/discussions/2246
-
         // start broadcast
         vm.startBroadcast(deployerPrivateKey);
 

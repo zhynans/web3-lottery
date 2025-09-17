@@ -6,6 +6,7 @@ import { useWriteContract, useReadContract, useAccount } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { getConfig } from "./wagmi";
 import { getMyNumbers } from "./graph/dailylottery";
+import toast from "react-hot-toast";
 
 const price = parseEther("0.001");
 // take numbers abi
@@ -44,7 +45,7 @@ export function DailyLotteryDraw() {
   // take numbers function
   const handleDraw = async (count: number) => {
     if (!isConnected) {
-      alert("请连接钱包");
+      toast.error("请连接钱包");
       return;
     }
 
@@ -52,7 +53,8 @@ export function DailyLotteryDraw() {
 
     try {
       if (!dailyLotteryContractAddress) {
-        throw new Error("未配置合约地址");
+        toast.error("未配置合约地址");
+        return;
       }
 
       const totalValue = price * BigInt(count);

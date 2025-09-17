@@ -1,7 +1,6 @@
 import { GraphQLClient, gql } from "graphql-request";
 
-const graphApiUrl = process.env
-  .NEXT_PUBLIC_GRAPH_API_URL_DAILYLOTTERY as string;
+const graphApiUrl = process.env.NEXT_PUBLIC_GRAPH_API_URL as string;
 
 export const getMyNumbers = async (
   address: string,

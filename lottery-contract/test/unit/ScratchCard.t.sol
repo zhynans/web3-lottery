@@ -116,17 +116,6 @@ contract ScratchCardTest is Test {
 
     // ============ ScratchCard Function Tests ============
 
-    function test_ScratchCard_CorrectPrice() public {
-        address user = makeAddr("user");
-        vm.deal(user, 1 ether);
-
-        vm.prank(user);
-        scratchCard.scratchCard{value: 0.001 ether}();
-
-        // Function should execute successfully
-        assertTrue(true);
-    }
-
     function test_ScratchCard_WrongPrice() public {
         address user = makeAddr("user");
         vm.deal(user, 1 ether);
@@ -145,15 +134,16 @@ contract ScratchCardTest is Test {
         scratchCard.scratchCard{value: 0}();
     }
 
-    function test_ScratchCard_RequestsRandomNumbers() public {
+    function test_ScratchCard_EmitsScratchCardEvent() public {
         address user = makeAddr("user");
         vm.deal(user, 1 ether);
 
+        // 仅校验 indexed 的 user topic，避免对 timestamp 等易变字段的断言
+        vm.expectEmit(true, false, false, false);
+        emit ScratchCard.ScratchCardEvent(user, 0.001 ether, 0);
+
         vm.prank(user);
         scratchCard.scratchCard{value: 0.001 ether}();
-
-        // Function should execute successfully (random number request is made)
-        assertTrue(true);
     }
 
     // ============ Callback Function Tests ============
@@ -168,9 +158,9 @@ contract ScratchCardTest is Test {
 
         address user = makeAddr("user");
 
-        // Expect LotteryResult event with NoPrize
+        // Expect LotteryResultEvent with NoPrize (only check indexed topic: user)
         vm.expectEmit(true, false, false, false);
-        emit ScratchCard.LotteryResult(user, ScratchCardPrize.NoPrize, 0);
+        emit ScratchCard.LotteryResultEvent(user, ScratchCardPrize.NoPrize, 0, 0, 0);
 
         // Simulate callback with random number that results in NoPrize
         // (ScratchCardResultV1 will determine the prize based on random number)

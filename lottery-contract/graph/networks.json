@@ -9,6 +9,10 @@
     "DailyLottery": {
       "address": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
       "startBlock": 0
+    },
+    "ScratchCard": {
+      "address": "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
+      "startBlock": 0
     }
   }
 }
