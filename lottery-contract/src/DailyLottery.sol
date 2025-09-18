@@ -260,4 +260,30 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
     function getFeeRate(uint64 _lotteryNumber) public view returns (uint8) {
         return lotterys[_lotteryNumber].feeRate;
     }
+
+    // ============= set function =============
+
+    function setRandProviderAddress(address _randProviderAddress) public onlyOwner {
+        randProvider = IDailyLotteryRandProvider(_randProviderAddress);
+    }
+
+    function setNftAddress(address _nftAddress) public onlyOwner {
+        nft = IDailyLotteryToken(_nftAddress);
+    }
+
+    function setNumberLogicAddress(address _numberLogicAddress) public onlyOwner {
+        numberLogic = IDailyLotteryNumberLogic(_numberLogicAddress);
+    }
+
+    function setPricePerNumber(uint256 _pricePerNumber) public onlyOwner {
+        pricePerNumber = _pricePerNumber;
+    }
+
+    function setFeeRate(uint8 _feeRate) public onlyOwner {
+        feeRate = _feeRate;
+    }
+
+    function setMinDrawInterval(uint64 _minDrawInterval) public onlyOwner {
+        minDrawInterval = _minDrawInterval;
+    }
 }

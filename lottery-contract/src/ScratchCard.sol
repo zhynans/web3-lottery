@@ -29,13 +29,13 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
     WinnerData[] public luckyWinners;
 
     // event for scratch card
-    event ScratchCardEvent(address indexed user, uint256 value, uint256 timestamp);
+    event ScratchCardEvent(address indexed user, uint256 indexed timestamp, uint256 value);
     // event for lottery result
     event LotteryResultEvent(
         address indexed user,
-        ScratchCardPrize prize,
+        uint256 indexed timestamp,
+        ScratchCardPrize indexed prize,
         uint256 amount,
-        uint256 timestamp,
         uint256 randomNumber
     );
 
@@ -62,7 +62,7 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
         scratchCardRandProvider.requestRandomNumbers(msg.sender);
 
         // emit scratch card request
-        emit ScratchCardEvent(msg.sender, msg.value, block.timestamp);
+        emit ScratchCardEvent(msg.sender, block.timestamp, msg.value);
     }
 
     // error for only rand provider
@@ -77,7 +77,7 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
 
         // if no prize, return immediately
         if (prize == ScratchCardPrize.NoPrize) {
-            emit LotteryResultEvent(_user, prize, 0, block.timestamp, _randomNumber);
+            emit LotteryResultEvent(_user, block.timestamp, prize, 0, _randomNumber);
             return;
         }
 
@@ -105,7 +105,7 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
         }
 
         // emit lottery result
-        emit LotteryResultEvent(_user, prize, prizeAmount, block.timestamp, _randomNumber);
+        emit LotteryResultEvent(_user, block.timestamp, prize, prizeAmount, _randomNumber);
     }
 
     error TransferFailed(uint256 value);
@@ -140,5 +140,27 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
         require(prizeSuccess, TransferFailed(prizeAmount));
 
         return (feeAmount, prizeAmount);
+    }
+
+    // =========== set function ===========
+
+    function setResultAddress(address _address) public onlyOwner {
+        scratchCardResult = IScratchCardResult(_address);
+    }
+
+    function setTokenAddress(address _address) public onlyOwner {
+        scratchCardToken = IScratchCardToken(_address);
+    }
+
+    function setRandProviderAddress(address _address) public onlyOwner {
+        scratchCardRandProvider = IScratchCardRandProvider(_address);
+    }
+
+    function setPrice(uint256 _price) public onlyOwner {
+        price = _price;
+    }
+
+    function setFeeRate(uint8 _feeRate) public onlyOwner {
+        feeRate = _feeRate;
     }
 }

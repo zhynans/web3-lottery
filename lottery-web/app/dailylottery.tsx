@@ -1,20 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { parseEther, parseAbi, decodeEventLog } from "viem";
+import { parseEther, decodeEventLog } from "viem";
 import { useWriteContract, useReadContract, useAccount } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { getConfig } from "./wagmi";
 import { getMyNumbers } from "./graph/dailylottery";
 import toast from "react-hot-toast";
+import { dailyLotteryAbi } from "./lib/abi";
 
 const price = parseEther("0.001");
-// take numbers abi
-const dailyLotteryAbi = parseAbi([
-  "function lotteryNumber() view returns (uint64)",
-  "function takeNumbers(uint64 nums) payable",
-  "event TakeNumbersEvent(uint64 indexed lotteryNumber, address indexed user, uint64[] numbers)",
-]);
+
 // the contract address of take numbers
 const dailyLotteryContractAddress =
   process.env.NEXT_PUBLIC_CONTRACT_ADDR_DAILYLOTTERY;

@@ -11,8 +11,8 @@ contract ScratchCardVRFProvider is IScratchCardRandProvider, VRFConsumerBaseV2Pl
     // VRF variables
     bytes32 public keyHash; // VRF key hash
     uint256 public subId; // VRF sub id
-    uint32 public callbackGasLimit = 1e7; // VRF callback gas limit
-    uint16 public requestConfirmations = 3; // VRF request confirmations
+    uint32 public callbackGasLimit = 1e6; // VRF callback gas limit, require: < 2.5e6
+    uint16 public requestConfirmations = 3; // VRF request confirmations, require: [3, 200]
 
     // key: requestId, value: the address of user
     mapping(uint256 => address) public vrfRequestIds; // VRF request id by user
@@ -28,10 +28,6 @@ contract ScratchCardVRFProvider is IScratchCardRandProvider, VRFConsumerBaseV2Pl
         subId = _subId;
     }
 
-    function setCallbackAddress(address _callbackAddress) external onlyOwner {
-        callback = IScratchCardRandCallback(_callbackAddress);
-    }
-
     function requestRandomNumbers(address _user) external override {
         uint256 vrfRequestId = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
@@ -41,7 +37,7 @@ contract ScratchCardVRFProvider is IScratchCardRandProvider, VRFConsumerBaseV2Pl
                 callbackGasLimit: callbackGasLimit,
                 numWords: 1,
                 extraArgs: VRFV2PlusClient._argsToBytes(
-                    VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
+                    VRFV2PlusClient.ExtraArgsV1({nativePayment: false}) // use link token to pay for VRF
                 )
             })
         );
@@ -67,24 +63,25 @@ contract ScratchCardVRFProvider is IScratchCardRandProvider, VRFConsumerBaseV2Pl
         delete vrfRequestIds[_requestId];
     }
 
-    // set VRF parameters (only owner can call)
-    function setVrfParameters(
-        uint64 _subId,
-        bytes32 _keyHash,
-        uint32 _callbackGasLimit,
-        uint16 _requestConfirmations
-    ) public onlyOwner {
-        if (_subId != 0) {
-            subId = _subId;
-        }
-        if (_keyHash != 0) {
-            keyHash = _keyHash;
-        }
-        if (_callbackGasLimit != 0) {
-            callbackGasLimit = _callbackGasLimit;
-        }
-        if (_requestConfirmations != 0) {
-            requestConfirmations = _requestConfirmations;
-        }
+    // =========== set function ===========
+
+    function setCallbackAddress(address _callbackAddress) external onlyOwner {
+        callback = IScratchCardRandCallback(_callbackAddress);
+    }
+
+    function setKeyHash(bytes32 _keyHash) external onlyOwner {
+        keyHash = _keyHash;
+    }
+
+    function setSubId(uint256 _subId) external onlyOwner {
+        subId = _subId;
+    }
+
+    function setCallbackGasLimit(uint32 _callbackGasLimit) external onlyOwner {
+        callbackGasLimit = _callbackGasLimit;
+    }
+
+    function setRequestConfirmations(uint16 _requestConfirmations) external onlyOwner {
+        requestConfirmations = _requestConfirmations;
     }
 }

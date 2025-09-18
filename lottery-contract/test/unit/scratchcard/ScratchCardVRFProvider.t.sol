@@ -68,7 +68,7 @@ contract ScratchCardVRFProviderTest is Test {
     function test_Constructor_SetsCorrectValues() public view {
         assertEq(vrfProvider.keyHash(), KEY_HASH);
         assertEq(vrfProvider.subId(), subId);
-        assertEq(vrfProvider.callbackGasLimit(), 1e7);
+        assertEq(vrfProvider.callbackGasLimit(), 1e6);
         assertEq(vrfProvider.requestConfirmations(), 3);
     }
 
@@ -220,77 +220,122 @@ contract ScratchCardVRFProviderTest is Test {
 
     // ============ VRF Parameters Tests ============
 
-    function test_SetVrfParameters_OnlyOwner() public {
-        // Non-owner cannot set parameters
+    // ============ setKeyHash Tests ============
+
+    function test_SetKeyHash_OnlyOwner() public {
+        bytes32 newKeyHash = 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890;
+
+        // Non-owner cannot set key hash
         vm.prank(user1);
         vm.expectRevert();
-        vrfProvider.setVrfParameters(2, bytes32(0), 0, 0);
-    }
+        vrfProvider.setKeyHash(newKeyHash);
 
-    function test_SetVrfParameters_UpdatesSubId() public {
-        uint64 newSubId = 123;
-
+        // Owner can set key hash
         vm.prank(owner);
-        vrfProvider.setVrfParameters(newSubId, bytes32(0), 0, 0);
-
-        assertEq(vrfProvider.subId(), newSubId);
+        vrfProvider.setKeyHash(newKeyHash);
+        assertEq(vrfProvider.keyHash(), newKeyHash);
     }
 
-    function test_SetVrfParameters_UpdatesKeyHash() public {
+    function test_SetKeyHash_UpdatesKeyHash() public {
         bytes32 newKeyHash = 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890;
 
         vm.prank(owner);
-        vrfProvider.setVrfParameters(0, newKeyHash, 0, 0);
+        vrfProvider.setKeyHash(newKeyHash);
 
         assertEq(vrfProvider.keyHash(), newKeyHash);
     }
 
-    function test_SetVrfParameters_UpdatesCallbackGasLimit() public {
-        uint32 newCallbackGasLimit = 2e7;
+    // ============ setSubId Tests ============
+
+    function test_SetSubId_OnlyOwner() public {
+        uint256 newSubId = 123;
+
+        // Non-owner cannot set sub id
+        vm.prank(user1);
+        vm.expectRevert();
+        vrfProvider.setSubId(newSubId);
+
+        // Owner can set sub id
+        vm.prank(owner);
+        vrfProvider.setSubId(newSubId);
+        assertEq(vrfProvider.subId(), newSubId);
+    }
+
+    function test_SetSubId_UpdatesSubId() public {
+        uint256 newSubId = 123;
 
         vm.prank(owner);
-        vrfProvider.setVrfParameters(0, bytes32(0), newCallbackGasLimit, 0);
+        vrfProvider.setSubId(newSubId);
+
+        assertEq(vrfProvider.subId(), newSubId);
+    }
+
+    // ============ setCallbackGasLimit Tests ============
+
+    function test_SetCallbackGasLimit_OnlyOwner() public {
+        uint32 newCallbackGasLimit = 2e6;
+
+        // Non-owner cannot set callback gas limit
+        vm.prank(user1);
+        vm.expectRevert();
+        vrfProvider.setCallbackGasLimit(newCallbackGasLimit);
+
+        // Owner can set callback gas limit
+        vm.prank(owner);
+        vrfProvider.setCallbackGasLimit(newCallbackGasLimit);
+        assertEq(vrfProvider.callbackGasLimit(), newCallbackGasLimit);
+    }
+
+    function test_SetCallbackGasLimit_UpdatesCallbackGasLimit() public {
+        uint32 newCallbackGasLimit = 2e6;
+
+        vm.prank(owner);
+        vrfProvider.setCallbackGasLimit(newCallbackGasLimit);
 
         assertEq(vrfProvider.callbackGasLimit(), newCallbackGasLimit);
     }
 
-    function test_SetVrfParameters_UpdatesRequestConfirmations() public {
+    // ============ setRequestConfirmations Tests ============
+
+    function test_SetRequestConfirmations_OnlyOwner() public {
+        uint16 newRequestConfirmations = 5;
+
+        // Non-owner cannot set request confirmations
+        vm.prank(user1);
+        vm.expectRevert();
+        vrfProvider.setRequestConfirmations(newRequestConfirmations);
+
+        // Owner can set request confirmations
+        vm.prank(owner);
+        vrfProvider.setRequestConfirmations(newRequestConfirmations);
+        assertEq(vrfProvider.requestConfirmations(), newRequestConfirmations);
+    }
+
+    function test_SetRequestConfirmations_UpdatesRequestConfirmations() public {
         uint16 newRequestConfirmations = 5;
 
         vm.prank(owner);
-        vrfProvider.setVrfParameters(0, bytes32(0), 0, newRequestConfirmations);
+        vrfProvider.setRequestConfirmations(newRequestConfirmations);
 
         assertEq(vrfProvider.requestConfirmations(), newRequestConfirmations);
     }
 
-    function test_SetVrfParameters_IgnoresZeroValues() public {
-        uint256 originalSubId = vrfProvider.subId();
-        bytes32 originalKeyHash = vrfProvider.keyHash();
-        uint32 originalCallbackGasLimit = vrfProvider.callbackGasLimit();
-        uint16 originalRequestConfirmations = vrfProvider.requestConfirmations();
+    // ============ Multiple Parameters Tests ============
 
-        vm.prank(owner);
-        vrfProvider.setVrfParameters(0, bytes32(0), 0, 0);
-
-        assertEq(vrfProvider.subId(), originalSubId);
-        assertEq(vrfProvider.keyHash(), originalKeyHash);
-        assertEq(vrfProvider.callbackGasLimit(), originalCallbackGasLimit);
-        assertEq(vrfProvider.requestConfirmations(), originalRequestConfirmations);
-    }
-
-    function test_SetVrfParameters_UpdatesMultipleParameters() public {
-        uint64 newSubId = 456;
+    function test_SetMultipleParameters_Sequentially() public {
+        uint256 newSubId = 456;
         bytes32 newKeyHash = 0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321;
-        uint32 newCallbackGasLimit = 3e7;
+        uint32 newCallbackGasLimit = 2e6;
         uint16 newRequestConfirmations = 7;
 
-        vm.prank(owner);
-        vrfProvider.setVrfParameters(
-            newSubId,
-            newKeyHash,
-            newCallbackGasLimit,
-            newRequestConfirmations
-        );
+        vm.startPrank(owner);
+
+        vrfProvider.setSubId(newSubId);
+        vrfProvider.setKeyHash(newKeyHash);
+        vrfProvider.setCallbackGasLimit(newCallbackGasLimit);
+        vrfProvider.setRequestConfirmations(newRequestConfirmations);
+
+        vm.stopPrank();
 
         assertEq(vrfProvider.subId(), newSubId);
         assertEq(vrfProvider.keyHash(), newKeyHash);

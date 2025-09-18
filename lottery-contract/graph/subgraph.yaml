@@ -6,11 +6,11 @@ schema:
 dataSources:
   - kind: ethereum
     name: DailyLottery
-    network: anvil
+    network: sepolia
     source:
       abi: DailyLottery
-      address: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"
-      startBlock: 0
+      address: "0x5e9Af14b431196FC988C1DC7eD2762a93b5F96C6"
+      startBlock: 9192999
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -29,11 +29,11 @@ dataSources:
       file: ./src/daily-lottery.ts
   - kind: ethereum
     name: ScratchCard
-    network: anvil
+    network: sepolia
     source:
-      address: "0x67d269191c92Caf3cD7723F116c85e6E9bf55933"
+      address: "0xD3892a4fF86edde565938463DE9F3C440D11F293"
       abi: ScratchCard
-      startBlock: 0
+      startBlock: 9192999
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -44,8 +44,8 @@ dataSources:
         - name: ScratchCard
           file: ./abis/ScratchCard.json
       eventHandlers:
-        - event: LotteryResultEvent(indexed address,uint8,uint256,uint256,uint256)
+        - event: LotteryResultEvent(indexed address,indexed uint256,indexed uint8,uint256,uint256)
           handler: handleLotteryResult
-        - event: ScratchCardEvent(indexed address,uint256,uint256)
+        - event: ScratchCardEvent(indexed address,indexed uint256,uint256)
           handler: handleScratchCard
       file: ./src/scratch-card.ts

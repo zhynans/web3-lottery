@@ -7,15 +7,13 @@ import { parseEther, formatEther, parseAbi, decodeEventLog } from "viem";
 import { getConfig } from "./wagmi";
 import { ScratchCard } from "./components/ScratchCard";
 import toast from "react-hot-toast";
+import { scratchCardAbi } from "./lib/abi";
 
 // 合约地址和ABI（这里需要根据实际合约地址和ABI进行配置）
 const CONTRACT_ADDRESS = process.env
   .NEXT_PUBLIC_CONTRACT_ADDR_SCRATCHCARD as `0x${string}`;
 const CONTRACT_DEPLOYER = process.env
   .NEXT_PUBLIC_CONTRACT_DEPLOYER as `0x${string}`;
-
-// 简化的合约ABI，包含获取奖池金额和充值功能
-const CONTRACT_ABI = parseAbi(["function fund() payable"]);
 
 // 刮刮乐刮奖功能组件
 export function ScratchCardDraw() {
@@ -55,7 +53,7 @@ export function ScratchCardDraw() {
 
       // send fund transaction
       const hash = await writeContractAsync({
-        abi: CONTRACT_ABI,
+        abi: scratchCardAbi,
         address: CONTRACT_ADDRESS as `0x${string}`,
         functionName: "fund",
         value: parseEther(fundingAmount),

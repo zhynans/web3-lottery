@@ -45,11 +45,14 @@ export const getSupportChains = () => {
 
 // 动态创建传输配置
 const createTransports = () => {
+  const sepoliaRpcUrl = process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL;
+  if (!sepoliaRpcUrl) {
+    throw new Error("NEXT_PUBLIC_SEPOLIA_RPC_URL is not set");
+  }
+
   const transports: Record<number, any> = {
     // [mainnet.id]: http(),
-    [sepolia.id]: http(
-      "https://eth-sepolia.g.alchemy.com/v2/y8Q8CNRbC_f36_VtVTY1a"
-    ),
+    [sepolia.id]: http(sepoliaRpcUrl),
   };
 
   // development

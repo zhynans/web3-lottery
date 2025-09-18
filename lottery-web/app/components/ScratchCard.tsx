@@ -1,18 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { waitForTransactionReceipt, watchContractEvent } from "wagmi/actions";
-import { useAccount, useWriteContract } from "wagmi";
-import { parseEther, formatEther, parseAbi, decodeEventLog } from "viem";
+import { waitForTransactionReceipt } from "wagmi/actions";
+import { useAccount, useWriteContract, useWatchContractEvent } from "wagmi";
+import { parseEther, formatEther } from "viem";
 import { getConfig } from "../wagmi";
 import toast from "react-hot-toast";
-
-const CONTRACT_ABI = parseAbi([
-  "function scratchCard() payable",
-  "event LotteryResult(address indexed user, uint8 prize, uint256 amount)",
-]);
+import { scratchCardAbi } from "../lib/abi";
 
 const price = parseEther("0.001");
+const thanksLogs = {
+  prize: 0,
+  amount: 0,
+};
 
 interface ScratchCardProps {
   contractAddress: `0x${string}`;
@@ -24,6 +24,7 @@ export function ScratchCard({ contractAddress, isReady }: ScratchCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [results, setResults] = useState<string[]>([]);
   const [isRevealed, setIsRevealed] = useState(false);
+  const [eventListenerEnabled, setEventListenerEnabled] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const coverRef = useRef<HTMLDivElement | null>(null);
   const isPointerDownRef = useRef(false);
@@ -32,6 +33,35 @@ export function ScratchCard({ contractAddress, isReady }: ScratchCardProps) {
   const { writeContractAsync } = useWriteContract();
 
   const { address, isConnected } = useAccount();
+
+  // 监听 LotteryResultEvent 事件
+  useWatchContractEvent({
+    address: contractAddress,
+    abi: scratchCardAbi,
+    eventName: "LotteryResultEvent",
+    args: {
+      user: address, // 只监听当前用户的事件
+    },
+    poll: true,
+    pollingInterval: 1000,
+    enabled:
+      isConnected && !!address && !!contractAddress && eventListenerEnabled, // 只在需要时启用
+    onLogs: (logs) => {
+      console.log("收到 LotteryResult 事件:", logs);
+      if (logs.length > 0) {
+        const log = logs[0] as any;
+        const args = (log && (log as any).args) || log;
+        handleLotteryResult(args);
+      }
+    },
+    onError: (error) => {
+      console.error("监听事件时出错:", error);
+      // 只在刮奖过程中显示错误，避免干扰用户
+      if (isScratching) {
+        handleLotteryResult(thanksLogs);
+      }
+    },
+  });
 
   // 处理彩票结果
   const handleLotteryResult = useCallback((args: any) => {
@@ -65,6 +95,7 @@ export function ScratchCard({ contractAddress, isReady }: ScratchCardProps) {
     setIsScratching(false);
     setIsModalOpen(true);
     setIsRevealed(false);
+    setEventListenerEnabled(false);
   }, []);
 
   // 刮奖处理函数
@@ -82,22 +113,29 @@ export function ScratchCard({ contractAddress, isReady }: ScratchCardProps) {
 
     try {
       setIsScratching(true);
+      setEventListenerEnabled(true); // 启用事件监听
 
       const hash = await writeContractAsync({
-        abi: CONTRACT_ABI,
+        abi: scratchCardAbi,
         address: contractAddress,
         functionName: "scratchCard",
         value: price,
-        account: address,
       });
 
       // 等待交易确认
-      await waitForTransactionReceipt(getConfig(), { hash });
+      const repcepit = await waitForTransactionReceipt(getConfig(), { hash });
+      if (repcepit.status !== "success") {
+        toast.error("操作未成功，请稍后重试");
+        setIsScratching(false);
+        setEventListenerEnabled(false);
+        return;
+      }
       console.log("刮奖交易已提交，等待 VRF 回调...");
     } catch (error) {
       toast.error("刮奖失败");
       console.error("刮奖失败", error);
       setIsScratching(false);
+      setEventListenerEnabled(false);
     }
   };
 
@@ -236,40 +274,6 @@ export function ScratchCard({ contractAddress, isReady }: ScratchCardProps) {
     },
     [isRevealed]
   );
-
-  // 监听 LotteryResult 事件
-  useEffect(() => {
-    if (!contractAddress || !address) return;
-
-    console.log("开始监听 LotteryResult 事件...");
-
-    // 监听合约事件
-    const unwatch = watchContractEvent(getConfig(), {
-      address: contractAddress,
-      abi: CONTRACT_ABI,
-      eventName: "LotteryResult",
-      args: {
-        user: address, // 只监听当前用户的事件
-      },
-      onLogs: (logs) => {
-        console.log("收到 LotteryResult 事件:", logs);
-        if (logs.length > 0) {
-          const log = logs[0];
-          handleLotteryResult(log.args);
-        }
-      },
-      onError: (error) => {
-        console.error("监听事件时出错:", error);
-        toast.error("监听事件失败");
-        setIsScratching(false);
-      },
-    });
-
-    return () => {
-      console.log("停止监听 LotteryResult 事件");
-      unwatch();
-    };
-  }, [contractAddress, address, handleLotteryResult]);
 
   // 绑定指针事件
   useEffect(() => {

@@ -7,6 +7,7 @@ import {ScratchCardResultV1} from "src/scratchcard/ScratchCardResultV1.sol";
 import {ScratchCardTokenV1} from "src/scratchcard/ScratchCardTokenV1.sol";
 import {ScratchCardVRFProvider} from "src/scratchcard/ScratchCardVRFProvider.sol";
 import {AllDeployScratchCard} from "script/AllDeployScratchCard.s.sol";
+import {IScratchCardRandProvider} from "src/scratchcard/interface/IScratchCardRand.sol";
 
 contract ScratchCardIntegrationTest is Test {
     ScratchCard scratchCard;
@@ -14,21 +15,7 @@ contract ScratchCardIntegrationTest is Test {
     ScratchCardTokenV1 scratchCardToken;
     ScratchCardVRFProvider scratchCardVRFProvider;
 
-    function setUp() public {
-        // run deploy script
-        // AllDeployScratchCard deployScratchCard = new AllDeployScratchCard();
-        // scratchCard = deployScratchCard.run();
-    }
+    function setUp() public {}
 
-    function test_ScratchCardWorkflow() public pure {
-        // Test the complete scratch card workflow
-        // This would include:
-        // 1. Funding the contract
-        // 2. User playing scratch card
-        // 3. VRF callback handling
-        // 4. Prize distribution
-
-        // For now, just verify the function exists
-        assert(true);
-    }
+    function test_ScratchCardWorkflow() public {}
 }

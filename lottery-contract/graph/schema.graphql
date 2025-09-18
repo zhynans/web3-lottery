@@ -23,9 +23,9 @@ type TakeNumber @entity(immutable: true) {
 type LotteryResult @entity(immutable: true) {
   id: Bytes!
   user: Bytes! # address
+  timestamp: BigInt! # uint256
   prize: Int! # uint8
   amount: BigInt! # uint256
-  timestamp: BigInt! # uint256
   randomNumber: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!
@@ -35,8 +35,8 @@ type LotteryResult @entity(immutable: true) {
 type ScratchCard @entity(immutable: true) {
   id: Bytes!
   user: Bytes! # address
-  value: BigInt! # uint256
   timestamp: BigInt! # uint256
+  value: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!

@@ -9,9 +9,9 @@ export function handleLotteryResult(event: LotteryResultEvent): void {
     event.transaction.hash.concatI32(event.logIndex.toI32()),
   );
   entity.user = event.params.user;
+  entity.timestamp = event.params.timestamp;
   entity.prize = event.params.prize;
   entity.amount = event.params.amount;
-  entity.timestamp = event.params.timestamp;
   entity.randomNumber = event.params.randomNumber;
 
   entity.blockNumber = event.block.number;

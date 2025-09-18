@@ -65,15 +65,15 @@
         "type": "address"
       },
       {
-        "indexed": false,
+        "indexed": true,
         "internalType": "uint256",
-        "name": "value",
+        "name": "timestamp",
         "type": "uint256"
       },
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "timestamp",
+        "name": "value",
         "type": "uint256"
       }
     ],
@@ -90,7 +90,13 @@
         "type": "address"
       },
       {
-        "indexed": false,
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
         "internalType": "enum ScratchCardPrize",
         "name": "prize",
         "type": "uint8"
@@ -99,12 +105,6 @@
         "indexed": false,
         "internalType": "uint256",
         "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "timestamp",
         "type": "uint256"
       },
       {

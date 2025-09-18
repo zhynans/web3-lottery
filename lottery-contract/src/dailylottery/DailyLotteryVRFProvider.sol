@@ -12,8 +12,8 @@ contract DailyLotteryVRFProvider is IDailyLotteryRandProvider, VRFConsumerBaseV2
     // VRF variables
     bytes32 public keyHash; // VRF key hash
     uint256 public subId; // VRF sub id
-    uint32 public callbackGasLimit = 1e7; // VRF callback gas limit
-    uint16 public requestConfirmations = 3; // VRF request confirmations
+    uint32 public callbackGasLimit = 1e6; // VRF callback gas limit, require: < 2.5e6
+    uint16 public requestConfirmations = 3; // VRF request confirmations, require: [3, 200]
     uint256 public vrfRequestId; // VRF request id
 
     error VRFRequestFailed();
@@ -26,10 +26,6 @@ contract DailyLotteryVRFProvider is IDailyLotteryRandProvider, VRFConsumerBaseV2
     ) VRFConsumerBaseV2Plus(vrfCoordinator) {
         keyHash = _keyHash;
         subId = _subId;
-    }
-
-    function setCallbackAddress(address _callbackAddress) external onlyOwner {
-        callback = IDailyLotteryRandCallback(_callbackAddress);
     }
 
     function requestRandomNumbers(uint32 nums) external override {
@@ -68,24 +64,25 @@ contract DailyLotteryVRFProvider is IDailyLotteryRandProvider, VRFConsumerBaseV2
         vrfRequestId = 0;
     }
 
-    // set VRF parameters (only owner can call)
-    function setVrfParameters(
-        uint64 _subId,
-        bytes32 _keyHash,
-        uint32 _callbackGasLimit,
-        uint16 _requestConfirmations
-    ) public onlyOwner {
-        if (_subId != 0) {
-            subId = _subId;
-        }
-        if (_keyHash != 0) {
-            keyHash = _keyHash;
-        }
-        if (_callbackGasLimit != 0) {
-            callbackGasLimit = _callbackGasLimit;
-        }
-        if (_requestConfirmations != 0) {
-            requestConfirmations = _requestConfirmations;
-        }
+    // =========== set function ===========
+
+    function setCallbackAddress(address _callbackAddress) external onlyOwner {
+        callback = IDailyLotteryRandCallback(_callbackAddress);
+    }
+
+    function setKeyHash(bytes32 _keyHash) external onlyOwner {
+        keyHash = _keyHash;
+    }
+
+    function setSubId(uint256 _subId) external onlyOwner {
+        subId = _subId;
+    }
+
+    function setCallbackGasLimit(uint32 _callbackGasLimit) external onlyOwner {
+        callbackGasLimit = _callbackGasLimit;
+    }
+
+    function setRequestConfirmations(uint16 _requestConfirmations) external onlyOwner {
+        requestConfirmations = _requestConfirmations;
     }
 }
