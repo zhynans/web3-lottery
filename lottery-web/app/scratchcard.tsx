@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { useBalance, useAccount, useWriteContract } from "wagmi";
 import { parseEther, formatEther, parseAbi, decodeEventLog } from "viem";
@@ -8,12 +8,20 @@ import { getConfig } from "./wagmi";
 import { ScratchCard } from "./components/ScratchCard";
 import toast from "react-hot-toast";
 import { scratchCardAbi } from "./lib/abi";
+import { getLotteryResultList, LotteryResult } from "./graph/scratchcard";
 
 // 合约地址和ABI（这里需要根据实际合约地址和ABI进行配置）
 const CONTRACT_ADDRESS = process.env
   .NEXT_PUBLIC_CONTRACT_ADDR_SCRATCHCARD as `0x${string}`;
 const CONTRACT_DEPLOYER = process.env
   .NEXT_PUBLIC_CONTRACT_DEPLOYER as `0x${string}`;
+
+const prizeMap: Record<number, string> = {
+  0: "未中奖",
+  1: "大奖",
+  2: "小奖",
+  3: "幸运奖",
+};
 
 // 刮刮乐刮奖功能组件
 export function ScratchCardDraw() {
@@ -136,33 +144,22 @@ export function ScratchCardWinners() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const itemsPerPage = 5;
 
-  // 刮刮乐中奖数据
-  const scratchWinners = [
-    { address: "0x1111...2222", prize: "500 USDT", time: "15:20" },
-    { address: "0x3333...4444", prize: "100 USDT", time: "14:55" },
-    { address: "0x5555...6666", prize: "1000 USDT", time: "14:10" },
-    { address: "0x7777...8888", prize: "200 USDT", time: "13:30" },
-    { address: "0x9999...aaaa", prize: "800 USDT", time: "12:45" },
-    { address: "0xbbbb...cccc", prize: "150 USDT", time: "11:20" },
-    { address: "0xdddd...eeee", prize: "600 USDT", time: "10:15" },
-    { address: "0xffff...0000", prize: "300 USDT", time: "09:30" },
-    { address: "0x1111...3333", prize: "400 USDT", time: "08:45" },
-    { address: "0x4444...5555", prize: "120 USDT", time: "07:20" },
-    { address: "0x6666...7777", prize: "700 USDT", time: "06:10" },
-    { address: "0x8888...9999", prize: "250 USDT", time: "05:25" },
-  ];
+  const [scratchResults, setScratchResults] = useState<Array<LotteryResult>>(
+    []
+  );
 
-  // 获取当前页的数据
-  const getCurrentPageData = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return scratchWinners.slice(startIndex, endIndex);
+  // get winners from graph
+  const fetchWinners = async (currentPage: number, pageSize: number) => {
+    const data = await getLotteryResultList(currentPage, pageSize);
+    setScratchResults(data);
   };
 
-  // 计算总页数
-  const getTotalPages = () => {
-    return Math.ceil(scratchWinners.length / itemsPerPage);
-  };
+  useEffect(() => {
+    fetchWinners(currentPage, itemsPerPage);
+  }, [currentPage, itemsPerPage]);
+
+  // 是否还有下一页（当返回条数等于分页大小时，可能还有下一页）
+  const hasNextPage = scratchResults.length === itemsPerPage;
 
   // 翻页函数
   const goToPreviousPage = () => {
@@ -172,7 +169,7 @@ export function ScratchCardWinners() {
   };
 
   const goToNextPage = () => {
-    if (currentPage < getTotalPages()) {
+    if (hasNextPage) {
       setCurrentPage(currentPage + 1);
     }
   };
@@ -180,15 +177,16 @@ export function ScratchCardWinners() {
   // 刷新函数
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setCurrentPage(1);
-    setIsRefreshing(false);
+
+    fetchWinners(1, itemsPerPage).finally(() => {
+      setIsRefreshing(false);
+    });
   };
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-semibold text-gray-800">中奖名单</h3>
+        <h3 className="text-xl font-semibold text-gray-800">抽奖记录</h3>
         <button
           onClick={handleRefresh}
           disabled={isRefreshing}
@@ -212,23 +210,51 @@ export function ScratchCardWinners() {
       </div>
 
       <div className="space-y-2">
-        {getCurrentPageData().map((winner, index) => (
-          <div
-            key={index}
-            className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
-          >
-            <span className="text-sm text-gray-600">{winner.address}</span>
-            <span className="font-semibold text-blue-600">{winner.prize}</span>
-            <span className="text-xs text-gray-500">{winner.time}</span>
-          </div>
-        ))}
+        {scratchResults.map((item, index) => {
+          // 地址格式化为 0x开头，前2位+...+后4位
+          const formatAddress = (address: string) => {
+            if (!address) return "";
+            return `${address.slice(0, 6)}...${address.slice(-6)}`;
+          };
+
+          const formatTimestamp = (timestamp: number) => {
+            const date = new Date(timestamp * 1000);
+            const pad = (n: number) => n.toString().padStart(2, "0");
+            const year = date.getFullYear();
+            const month = pad(date.getMonth() + 1);
+            const day = pad(date.getDate());
+            const hour = pad(date.getHours());
+            const minute = pad(date.getMinutes());
+            const second = pad(date.getSeconds());
+            return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+          };
+
+          return (
+            <div
+              key={index}
+              className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+            >
+              <span className="text-sm text-gray-800">
+                用户（{formatAddress(item.user)}）
+              </span>
+              <span className="font-semibold text-blue-600">
+                {prizeMap[item.prize]}
+              </span>
+              {item.amount > 0 && (
+                <span className="text-green-600 font-semibold ml-2">
+                  金额：{item.amount}
+                </span>
+              )}
+              <span className="text-xs text-gray-500">
+                {formatTimestamp(item.timestamp)}
+              </span>
+            </div>
+          );
+        })}
       </div>
 
       {/* 分页控件 */}
-      <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
-        <div className="text-sm text-gray-600">
-          第 {currentPage} 页，共 {getTotalPages()} 页
-        </div>
+      <div className="flex justify-end items-center mt-6 pt-4 border-t border-gray-200">
         <div className="flex space-x-2">
           <button
             onClick={goToPreviousPage}
@@ -239,7 +265,7 @@ export function ScratchCardWinners() {
           </button>
           <button
             onClick={goToNextPage}
-            disabled={currentPage === getTotalPages()}
+            disabled={!hasNextPage}
             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             下一页
