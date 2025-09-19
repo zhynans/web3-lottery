@@ -174,8 +174,8 @@ contract DailyLotteryTest is Test {
         assertTrue(success);
 
         // warp forward but not enough time (less than minDrawInterval)
-        // minDrawInterval is 1 days - 5 minutes = 86100 seconds
-        // let's wait only 1 hour = 3600 seconds, which is much less than 86100
+        // minDrawInterval is 1 days - 1 hour = 82800 seconds
+        // let's wait only 1 hour = 3600 seconds, which is much less than 82800
         vm.warp(block.timestamp + 1 hours);
 
         // draw lottery - should fail because not enough time has passed

@@ -7,6 +7,8 @@
 package main
 
 import (
+	"lottery-go/internal/application"
+	"lottery-go/internal/contract"
 	"lottery-go/internal/job"
 	"lottery-go/internal/server"
 )
@@ -14,7 +16,10 @@ import (
 // Injectors from wire.go:
 
 func initApp() (*server.App, error) {
-	registryJobs := job.NewRegistryJobs()
+	dailyLotteryContract := contract.NewDailyLotteryContract()
+	dailyLotteryApplication := application.NewDailyLotteryApplication(dailyLotteryContract)
+	drawLotteryJob := job.NewDrawLotteryJob(dailyLotteryApplication)
+	registryJobs := job.NewRegistryJobs(drawLotteryJob)
 	cron, err := server.NewJob(registryJobs)
 	if err != nil {
 		return nil, err

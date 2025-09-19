@@ -17,7 +17,7 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
 
     uint256 public pricePerNumber = 0.001 ether; // price per number
     uint8 public feeRate = 5; // fee rate
-    uint64 public minDrawInterval = 1 days - 5 minutes; // min interval between two lotteries
+    uint64 public minDrawInterval = 1 days - 1 hours; // min interval between two lotteries
 
     struct WinnerData {
         address winner; // the address of the winner

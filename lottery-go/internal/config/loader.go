@@ -1,7 +1,9 @@
 package config
 
-import "fmt"
-import "github.com/spf13/viper"
+import (
+	"fmt"
+	"github.com/spf13/viper"
+)
 
 type Loader interface {
 	Load(conf *viper.Viper) error
