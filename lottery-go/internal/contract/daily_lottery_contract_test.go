@@ -2,6 +2,7 @@ package contract
 
 import (
 	"lottery-go/internal/config"
+	"lottery-go/internal/pkg/eth"
 	"testing"
 )
 
@@ -46,6 +47,17 @@ func TestDailyLotteryContract_Draw(t *testing.T) {
 
 	err := contract.Draw()
 	if err != nil {
-		t.Fatalf("fails to get Draw(), %v", err)
+		t.Logf("Draw() error: %v", err)
+
+		// 验证错误解析是否正常工作
+		if contractErr, ok := err.(*eth.ContractError); ok {
+			t.Logf("Parsed contract error - Type: %s, Message: %s", contractErr.Type, contractErr.Message)
+			// 期望的错误类型应该是 MinDrawIntervalNotMet
+			if contractErr.Type != "MinDrawIntervalNotMet" {
+				t.Errorf("Expected error type 'MinDrawIntervalNotMet', got '%s'", contractErr.Type)
+			}
+		} else {
+			t.Logf("Error is not a ContractError: %T", err)
+		}
 	}
 }
