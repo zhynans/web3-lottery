@@ -9,7 +9,7 @@ export function handleLotteryDrawn(event: LotteryDrawnEvent): void {
     event.transaction.hash.concatI32(event.logIndex.toI32()),
   );
   entity.lotteryNumber = event.params.lotteryNumber;
-  entity.winningNumber = event.params.winningNumber;
+  entity.winnerNumber = event.params.winnerNumber;
   entity.winner = event.params.winner;
   entity.fee = event.params.fee;
   entity.prize = event.params.prize;

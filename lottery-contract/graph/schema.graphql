@@ -2,9 +2,10 @@ type LotteryDrawn @entity(immutable: true) {
   id: Bytes!
   lotteryNumber: BigInt! # uint64
   winner: Bytes! # address
-  winningNumber: BigInt! # uint64
+  winnerNumber: BigInt! # uint64
   fee: BigInt! # uint256
   prize: BigInt! # uint256
+  drawTime: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!
   transactionHash: Bytes!

@@ -36,7 +36,13 @@
   {
     "type": "function",
     "name": "drawLottery",
-    "inputs": [],
+    "inputs": [
+      {
+        "name": "_lotteryNumber",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -492,7 +498,7 @@
         "internalType": "address"
       },
       {
-        "name": "winningNumber",
+        "name": "winnerNumber",
         "type": "uint64",
         "indexed": false,
         "internalType": "uint64"
@@ -505,6 +511,12 @@
       },
       {
         "name": "prize",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "drawTime",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"

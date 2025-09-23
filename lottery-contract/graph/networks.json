@@ -1,7 +1,7 @@
 {
   "sepolia": {
     "DailyLottery": {
-      "address": "0x5e9Af14b431196FC988C1DC7eD2762a93b5F96C6",
+      "address": "0x3f2a64eF5361D5618563473166C4EA2b2d74235c",
       "startBlock": 9192999
     },
     "ScratchCard": {

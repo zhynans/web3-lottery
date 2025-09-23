@@ -17,7 +17,7 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
 
     uint256 public pricePerNumber = 0.001 ether; // price per number
     uint8 public feeRate = 5; // fee rate
-    uint64 public minDrawInterval = 1 days - 5 minutes; // min interval between two lotteries
+    uint64 public minDrawInterval = 1 days - 1 hours; // min interval between two lotteries
 
     struct WinnerData {
         address winner; // the address of the winner
@@ -47,6 +47,7 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
     error WrongEthValue(uint256 value);
     error NoNumbersToDraw();
 
+    error WrongLotteryNumber(uint64 param, uint64 current);
     error DrawingInProgress();
     error MinDrawIntervalNotMet(uint256 startTime, uint256 currentTime);
 
@@ -59,9 +60,10 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
     event LotteryDrawnEvent(
         uint64 indexed lotteryNumber,
         address indexed winner,
-        uint64 winningNumber,
+        uint64 winnerNumber,
         uint256 fee,
-        uint256 prize
+        uint256 prize,
+        uint256 drawTime
     );
 
     constructor(
@@ -135,23 +137,25 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
     }
 
     // draw lottery
-    function drawLottery() external onlyOwner {
+    function drawLottery(uint64 _lotteryNumber) external onlyOwner {
+        // check lottery number
+        require(_lotteryNumber == lotteryNumber, WrongLotteryNumber(_lotteryNumber, lotteryNumber));
+
         LotteryData storage lotteryData = lotterys[lotteryNumber];
 
         // check draw state
-        if (lotteryData.drawState == LotteryDrawState.Drawing) {
-            revert DrawingInProgress();
-        }
+        require(lotteryData.drawState == LotteryDrawState.NotDrawn, DrawingInProgress());
         // check draw time
-        if (block.timestamp - lotteryData.drawTime < minDrawInterval) {
-            revert MinDrawIntervalNotMet(lotteryData.drawTime, block.timestamp);
-        }
+        require(
+            block.timestamp - lotteryData.drawTime >= minDrawInterval,
+            MinDrawIntervalNotMet(lotteryData.drawTime, block.timestamp)
+        );
 
         // if no one take numbers, skip drawing
         if (!numberLogic.canDraw()) {
             finishLotteryData(lotteryData);
             initNextLotteryData();
-            emit LotteryDrawnEvent(lotteryNumber, address(0), 0, 0, 0);
+            emit LotteryDrawnEvent(lotteryNumber, address(0), 0, 0, 0, block.timestamp);
             return;
         }
 
@@ -171,10 +175,10 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         require(msg.sender == address(randProvider), OnlyRandProvider(msg.sender));
 
         // calculate winning number
-        uint64 winningNumber = numberLogic.getWinnerNumber(_randomNumber);
+        uint64 winnerNumber = numberLogic.getWinnerNumber(_randomNumber);
 
         // find winner
-        address winner = numberToUser[lotteryNumber][winningNumber];
+        address winner = numberToUser[lotteryNumber][winnerNumber];
 
         // handle fee and prize
         (uint256 fee, uint256 prize) = _handleFeeAndPrize(winner);
@@ -186,14 +190,22 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         winners[lotteryNumber] = WinnerData({
             winner: winner,
             tokenId: tokenId,
-            number: winningNumber,
+            number: winnerNumber,
             lotteryNumber: lotteryNumber
         });
 
         // finish lottery data
-        finishLotteryData(lotterys[lotteryNumber]);
+        LotteryData storage lotteryData = lotterys[lotteryNumber];
+        finishLotteryData(lotteryData);
 
-        emit LotteryDrawnEvent(lotteryNumber, winner, winningNumber, fee, prize);
+        emit LotteryDrawnEvent(
+            lotteryNumber,
+            winner,
+            winnerNumber,
+            fee,
+            prize,
+            lotteryData.drawTime
+        );
 
         //  prepare for next lottery data
         initNextLotteryData();
@@ -259,6 +271,10 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
 
     function getFeeRate(uint64 _lotteryNumber) public view returns (uint8) {
         return lotterys[_lotteryNumber].feeRate;
+    }
+
+    function getDrawTime(uint64 _lotteryNumber) public view returns (uint256) {
+        return lotterys[_lotteryNumber].drawTime;
     }
 
     // ============= set function =============

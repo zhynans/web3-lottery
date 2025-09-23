@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { useAccount, useWriteContract, useWatchContractEvent } from "wagmi";
-import { parseEther, formatEther } from "viem";
+import { parseEther } from "viem";
 import { getConfig } from "../wagmi";
 import toast from "react-hot-toast";
 import { scratchCardAbi } from "../lib/abi";
@@ -49,9 +49,11 @@ export function ScratchCard({ contractAddress, isReady }: ScratchCardProps) {
     onLogs: (logs) => {
       console.log("收到 LotteryResult 事件:", logs);
       if (logs.length > 0) {
-        const log = logs[0] as any;
-        const args = (log && (log as any).args) || log;
-        handleLotteryResult(args);
+        const log = logs[0];
+        const args = (log && "args" in log && log.args) || log;
+        handleLotteryResult(
+          args as { prize: number | bigint; amount: number | bigint }
+        );
       }
     },
     onError: (error) => {
@@ -64,39 +66,38 @@ export function ScratchCard({ contractAddress, isReady }: ScratchCardProps) {
   });
 
   // 处理彩票结果
-  const handleLotteryResult = useCallback((args: any) => {
-    const prize = Number(args.prize);
-    const prizeAmount = Number(formatEther(args.amount));
-    let prizeResult = "谢谢惠顾";
-    let amount = 0;
+  const handleLotteryResult = useCallback(
+    (args: { prize: number | bigint; amount: number | bigint }) => {
+      const prize =
+        typeof args.prize === "bigint" ? Number(args.prize) : args.prize;
+      let prizeResult = "谢谢惠顾";
 
-    // 根据枚举值确定奖品类型
-    switch (prize) {
-      case 0: // NoPrize
-        prizeResult = "谢谢惠顾";
-        break;
-      case 1: // GrandPrize
-        prizeResult = "大奖";
-        amount = prizeAmount;
-        break;
-      case 2: // SmallPrize
-        prizeResult = "小奖";
-        amount = prizeAmount;
-        break;
-      case 3: // LuckyPrize
-        prizeResult = "幸运奖";
-        amount = prizeAmount;
-        break;
-      default:
-        prizeResult = "谢谢惠顾";
-    }
+      // 根据枚举值确定奖品类型
+      switch (prize) {
+        case 0: // NoPrize
+          prizeResult = "谢谢惠顾";
+          break;
+        case 1: // GrandPrize
+          prizeResult = "大奖";
+          break;
+        case 2: // SmallPrize
+          prizeResult = "小奖";
+          break;
+        case 3: // LuckyPrize
+          prizeResult = "幸运奖";
+          break;
+        default:
+          prizeResult = "谢谢惠顾";
+      }
 
-    setResults([prizeResult]);
-    setIsScratching(false);
-    setIsModalOpen(true);
-    setIsRevealed(false);
-    setEventListenerEnabled(false);
-  }, []);
+      setResults([prizeResult]);
+      setIsScratching(false);
+      setIsModalOpen(true);
+      setIsRevealed(false);
+      setEventListenerEnabled(false);
+    },
+    []
+  );
 
   // 刮奖处理函数
   const handleScratch = async () => {
@@ -313,7 +314,7 @@ export function ScratchCard({ contractAddress, isReady }: ScratchCardProps) {
       window.removeEventListener("pointerup", onPointerUp);
       ro.disconnect();
     };
-  }, [isModalOpen, isRevealed, eraseAt]);
+  }, [isModalOpen, isRevealed, eraseAt, revealIfThreshold]);
 
   return (
     <>

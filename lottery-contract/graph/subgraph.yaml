@@ -9,7 +9,7 @@ dataSources:
     network: sepolia
     source:
       abi: DailyLottery
-      address: "0x5e9Af14b431196FC988C1DC7eD2762a93b5F96C6"
+      address: "0x3f2a64eF5361D5618563473166C4EA2b2d74235c"
       startBlock: 9192999
     mapping:
       kind: ethereum/events
@@ -22,7 +22,7 @@ dataSources:
         - name: DailyLottery
           file: ./abis/DailyLottery.json
       eventHandlers:
-        - event: LotteryDrawnEvent(indexed uint64,indexed address,uint64,uint256,uint256)
+        - event: LotteryDrawnEvent(indexed uint64,indexed address,uint64,uint256,uint256,uint256)
           handler: handleLotteryDrawn
         - event: TakeNumbersEvent(indexed uint64,indexed address,uint64[])
           handler: handleTakeNumbers

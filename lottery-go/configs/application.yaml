@@ -1,0 +1,10 @@
+log:
+  default:
+    level: info
+    filePath: logs/default.log
+
+contracts:
+  daily-lottery:
+    rpcUrl:
+    address:
+    privateKey: 

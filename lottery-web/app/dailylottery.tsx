@@ -1,13 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { parseEther, decodeEventLog } from "viem";
+import { parseEther, decodeEventLog, formatEther } from "viem";
 import { useWriteContract, useReadContract, useAccount } from "wagmi";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { getConfig } from "./wagmi";
-import { getMyNumbers } from "./graph/dailylottery";
+import {
+  getMyNumbers,
+  getLotteryDrawns,
+  LotteryDrawn,
+} from "./graph/dailylottery";
 import toast from "react-hot-toast";
 import { dailyLotteryAbi } from "./lib/abi";
+import { formatTimestamp } from "./util/datetime";
+import { formatAddress } from "./util/address";
 
 const price = parseEther("0.001");
 
@@ -29,7 +35,7 @@ export function DailyLotteryDraw() {
 
   const { writeContractAsync } = useWriteContract();
   const { address, isConnected } = useAccount();
-  const [lotteryNumber, setLotteryNumber] = useState<BigInt>(BigInt(0));
+  const [lotteryNumber, setLotteryNumber] = useState<bigint>(BigInt(0));
 
   // get lottery number
   const { data: lotteryNumberData } = useReadContract({
@@ -75,7 +81,8 @@ export function DailyLotteryDraw() {
           });
 
           if (decoded.eventName === "TakeNumbersEvent") {
-            const nums = (decoded.args as any).numbers as readonly bigint[];
+            const nums = (decoded.args as { numbers: readonly bigint[] })
+              .numbers;
             parsed = nums.map((n) => n.toString());
             break;
           }
@@ -124,7 +131,7 @@ export function DailyLotteryDraw() {
 
   useEffect(() => {
     if (lotteryNumberData) {
-      setLotteryNumber(lotteryNumberData as BigInt);
+      setLotteryNumber(lotteryNumberData as bigint);
     }
   }, [lotteryNumberData]);
 
@@ -298,33 +305,25 @@ export function DailyLotteryWinners() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const itemsPerPage = 5;
 
-  // 天天有奖中奖数据
-  const dailyWinners = [
-    { address: "0x1234...5678", prize: "100 USDT", time: "14:30" },
-    { address: "0xabcd...efgh", prize: "50 USDT", time: "13:45" },
-    { address: "0x9876...4321", prize: "200 USDT", time: "12:20" },
-    { address: "0x1111...2222", prize: "150 USDT", time: "11:15" },
-    { address: "0x3333...4444", prize: "75 USDT", time: "10:30" },
-    { address: "0x5555...6666", prize: "300 USDT", time: "09:45" },
-    { address: "0x7777...8888", prize: "80 USDT", time: "08:20" },
-    { address: "0x9999...aaaa", prize: "120 USDT", time: "07:10" },
-    { address: "0xbbbb...cccc", prize: "90 USDT", time: "06:30" },
-    { address: "0xdddd...eeee", prize: "250 USDT", time: "05:45" },
-    { address: "0xffff...0000", prize: "60 USDT", time: "04:20" },
-    { address: "0x1111...3333", prize: "180 USDT", time: "03:15" },
-  ];
+  const [dailyWinners, setDailyWinners] = useState<Array<LotteryDrawn>>([]);
+
+  // 获取中奖数据
+  const fetchWinners = async (currentPage: number, pageSize: number) => {
+    const data = await getLotteryDrawns(currentPage, pageSize);
+    setDailyWinners(data);
+  };
+
+  useEffect(() => {
+    fetchWinners(currentPage, itemsPerPage);
+  }, [currentPage, itemsPerPage]);
 
   // 获取当前页的数据
   const getCurrentPageData = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return dailyWinners.slice(startIndex, endIndex);
+    return dailyWinners;
   };
 
-  // 计算总页数
-  const getTotalPages = () => {
-    return Math.ceil(dailyWinners.length / itemsPerPage);
-  };
+  // 是否还有下一页（当返回条数等于分页大小时，可能还有下一页）
+  const hasNextPage = dailyWinners.length === itemsPerPage;
 
   // 翻页函数
   const goToPreviousPage = () => {
@@ -334,7 +333,7 @@ export function DailyLotteryWinners() {
   };
 
   const goToNextPage = () => {
-    if (currentPage < getTotalPages()) {
+    if (hasNextPage) {
       setCurrentPage(currentPage + 1);
     }
   };
@@ -342,9 +341,10 @@ export function DailyLotteryWinners() {
   // 刷新函数
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setCurrentPage(1);
-    setIsRefreshing(false);
+    fetchWinners(1, itemsPerPage).finally(() => {
+      setCurrentPage(1);
+      setIsRefreshing(false);
+    });
   };
 
   return (
@@ -379,18 +379,47 @@ export function DailyLotteryWinners() {
             key={index}
             className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
           >
-            <span className="text-sm text-gray-600">{winner.address}</span>
-            <span className="font-semibold text-green-600">{winner.prize}</span>
-            <span className="text-xs text-gray-500">{winner.time}</span>
+            {winner.winner === "0x0000000000000000000000000000000000000000" ? (
+              <>
+                <span className="text-sm text-gray-600">
+                  第{winner.lotteryNumber}期
+                </span>
+                <span className="font-semibold text-orange-600">本期轮空</span>
+                <span className="text-xs text-gray-500">
+                  {formatTimestamp(winner.drawTime)}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="text-sm text-gray-600">
+                  用户（{formatAddress(winner.winner.toString(), 6, 6)}）
+                </span>
+                <span className="text-sm text-gray-600">
+                  <div
+                    key={index}
+                    className="p-2 bg-blue-50 border border-blue-200 rounded-lg text-center"
+                  >
+                    <span className="text-sm font-mono text-blue-700 font-semibold p-2">
+                      {winner.winnerNumber}
+                    </span>
+                  </div>
+                </span>
+                <span className="font-semibold text-green-600">
+                  {winner.prize > 0
+                    ? `${formatEther(BigInt(winner.prize))} ETH`
+                    : "未中奖"}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {formatTimestamp(Number(winner.drawTime))}
+                </span>
+              </>
+            )}
           </div>
         ))}
       </div>
 
       {/* 分页控件 */}
-      <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
-        <div className="text-sm text-gray-600">
-          第 {currentPage} 页，共 {getTotalPages()} 页
-        </div>
+      <div className="flex justify-end items-center mt-6 pt-4 border-t border-gray-200">
         <div className="flex space-x-2">
           <button
             onClick={goToPreviousPage}
@@ -401,7 +430,7 @@ export function DailyLotteryWinners() {
           </button>
           <button
             onClick={goToNextPage}
-            disabled={currentPage === getTotalPages()}
+            disabled={!hasNextPage}
             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             下一页

@@ -50,7 +50,7 @@ const createTransports = () => {
     throw new Error("NEXT_PUBLIC_SEPOLIA_RPC_URL is not set");
   }
 
-  const transports: Record<number, any> = {
+  const transports: Record<number, ReturnType<typeof http>> = {
     // [mainnet.id]: http(),
     [sepolia.id]: http(sepoliaRpcUrl),
   };

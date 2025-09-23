@@ -1,8 +1,0 @@
-application:
-  name: web3-lottery-go
-  http-port: 8080
-
-log:
-  default:
-    level: info
-    filePath: logs/default.log

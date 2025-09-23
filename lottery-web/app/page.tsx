@@ -1,16 +1,11 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount, useBalance } from "wagmi";
 import { useState } from "react";
 import { DailyLotteryDraw, DailyLotteryWinners } from "@/app/dailylottery";
 import { ScratchCardDraw, ScratchCardWinners } from "@/app/scratchcard";
 
 export default function Home() {
-  const { address, isConnected } = useAccount();
-  const { data: balance } = useBalance({
-    address: address,
-  });
   const [activeMenu, setActiveMenu] = useState<"daily" | "scratch">("daily");
 
   return (

@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: "export", // 静态导出模式
+
   devIndicators: {
     position: "top-right", // 设置指示器的位置
   },

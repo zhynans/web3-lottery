@@ -62,4 +62,6 @@ sepolia部署脚本：
 ```shell
 $ forge script --chain sepolia script/AllDeployDailyLottery.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
 $ forge script --chain sepolia script/AllDeployScratchCard.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+
+$ forge script --chain sepolia script/DeployDailyLottery.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
 ```

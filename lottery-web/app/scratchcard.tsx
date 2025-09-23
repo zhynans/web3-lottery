@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { useBalance, useAccount, useWriteContract } from "wagmi";
-import { parseEther, formatEther, parseAbi, decodeEventLog } from "viem";
+import { parseEther, formatEther } from "viem";
 import { getConfig } from "./wagmi";
 import { ScratchCard } from "./components/ScratchCard";
 import toast from "react-hot-toast";
 import { scratchCardAbi } from "./lib/abi";
 import { getLotteryResultList, LotteryResult } from "./graph/scratchcard";
+import { formatTimestamp } from "./util/datetime";
+import { formatAddress } from "./util/address";
 
 // 合约地址和ABI（这里需要根据实际合约地址和ABI进行配置）
 const CONTRACT_ADDRESS = process.env
@@ -75,7 +77,7 @@ export function ScratchCardDraw() {
         toast.success("充值成功");
         setFundingAmount("");
       }
-    } catch (error) {
+    } catch {
       toast.error("充值失败");
     } finally {
       setIsFunding(false);
@@ -211,40 +213,20 @@ export function ScratchCardWinners() {
 
       <div className="space-y-2">
         {scratchResults.map((item, index) => {
-          // 地址格式化为 0x开头，前2位+...+后4位
-          const formatAddress = (address: string) => {
-            if (!address) return "";
-            return `${address.slice(0, 6)}...${address.slice(-6)}`;
-          };
-
-          const formatTimestamp = (timestamp: number) => {
-            const date = new Date(timestamp * 1000);
-            const pad = (n: number) => n.toString().padStart(2, "0");
-            const year = date.getFullYear();
-            const month = pad(date.getMonth() + 1);
-            const day = pad(date.getDate());
-            const hour = pad(date.getHours());
-            const minute = pad(date.getMinutes());
-            const second = pad(date.getSeconds());
-            return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
-          };
-
           return (
             <div
               key={index}
               className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
             >
               <span className="text-sm text-gray-800">
-                用户（{formatAddress(item.user)}）
+                用户（{formatAddress(item.user, 6, 6)}）
               </span>
               <span className="font-semibold text-blue-600">
                 {prizeMap[item.prize]}
               </span>
-              {item.amount > 0 && (
-                <span className="text-green-600 font-semibold ml-2">
-                  金额：{item.amount}
-                </span>
-              )}
+              <span className="text-green-600 font-semibold ml-2">
+                {item.amount > 0 ? `金额：${item.amount}` : ""}
+              </span>
               <span className="text-xs text-gray-500">
                 {formatTimestamp(item.timestamp)}
               </span>

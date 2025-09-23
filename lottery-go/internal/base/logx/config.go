@@ -31,8 +31,7 @@ type ConfigLoader struct{}
 
 // Load load log config info
 func (loader *ConfigLoader) Load(conf *viper.Viper) error {
-	err := conf.Unmarshal(&cfg)
-	if err != nil {
+	if err := conf.Unmarshal(&cfg); err != nil {
 		return err
 	}
 
