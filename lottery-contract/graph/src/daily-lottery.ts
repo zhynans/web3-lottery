@@ -13,6 +13,7 @@ export function handleLotteryDrawn(event: LotteryDrawnEvent): void {
   entity.winner = event.params.winner;
   entity.fee = event.params.fee;
   entity.prize = event.params.prize;
+  entity.drawTime = event.params.drawTime;
 
   entity.blockNumber = event.block.number;
   entity.blockTimestamp = event.block.timestamp;
