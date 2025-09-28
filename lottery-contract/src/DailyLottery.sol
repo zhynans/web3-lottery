@@ -154,8 +154,9 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         // if no one take numbers, skip drawing
         if (!numberLogic.canDraw()) {
             finishLotteryData(lotteryData);
-            initNextLotteryData();
             emit LotteryDrawnEvent(lotteryNumber, address(0), 0, 0, 0, block.timestamp);
+
+            initNextLotteryData();
             return;
         }
 
