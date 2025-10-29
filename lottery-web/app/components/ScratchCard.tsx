@@ -42,8 +42,6 @@ export function ScratchCard({ contractAddress, isReady }: ScratchCardProps) {
     args: {
       user: address, // 只监听当前用户的事件
     },
-    poll: true,
-    pollingInterval: 1000,
     enabled:
       isConnected && !!address && !!contractAddress && eventListenerEnabled, // 只在需要时启用
     onLogs: (logs) => {

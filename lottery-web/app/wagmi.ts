@@ -1,7 +1,29 @@
-import { cookieStorage, createConfig, createStorage, http } from "wagmi";
+import {
+  cookieStorage,
+  createConfig,
+  createStorage,
+  http,
+  webSocket,
+} from "wagmi";
+import { fallback } from "viem";
+import type { Transport } from "viem";
 
 import { injected } from "wagmi/connectors";
 import { sepolia } from "wagmi/chains";
+
+// 获取Infra Sepolia的HTTP和WebSocket地址
+const getSepoliaInfraUrls = () => {
+  const sepoliaInfraHttpUrl = process.env.NEXT_PUBLIC_SEPOLIA_INFURA_HTTP_URL;
+  if (!sepoliaInfraHttpUrl) {
+    throw new Error("NEXT_PUBLIC_SEPOLIA_INFURA_HTTP_URL is not set");
+  }
+  const sepoliaInfraWsUrl = process.env.NEXT_PUBLIC_SEPOLIA_INFURA_WSS_URL;
+  if (!sepoliaInfraWsUrl) {
+    throw new Error("NEXT_PUBLIC_SEPOLIA_INFURA_WSS_URL is not set");
+  }
+
+  return [sepoliaInfraHttpUrl, sepoliaInfraWsUrl];
+};
 
 // local chain config
 const createLocalChain = () => {
@@ -45,14 +67,22 @@ export const getSupportChains = () => {
 
 // 动态创建传输配置
 const createTransports = () => {
-  const sepoliaRpcUrl = process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL;
-  if (!sepoliaRpcUrl) {
-    throw new Error("NEXT_PUBLIC_SEPOLIA_RPC_URL is not set");
-  }
+  // Infura Sepolia HTTP and WebSocket URLs
+  const [sepoliaInfraHttpUrl, sepoliaInfraWsUrl] = getSepoliaInfraUrls();
 
-  const transports: Record<number, ReturnType<typeof http>> = {
+  const transports: Record<number, Transport> = {
     // [mainnet.id]: http(),
-    [sepolia.id]: http(sepoliaRpcUrl),
+    [sepolia.id]: fallback([
+      webSocket(sepoliaInfraWsUrl, {
+        retryCount: 10,
+        retryDelay: 1_000, // 1s 重连间隔
+      }),
+      http(sepoliaInfraHttpUrl, {
+        // 轮询降级的重试/超时
+        retryCount: 3,
+        timeout: 6_000,
+      }),
+    ]),
   };
 
   // development

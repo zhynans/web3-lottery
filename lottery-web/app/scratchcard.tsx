@@ -216,18 +216,20 @@ export function ScratchCardWinners() {
           return (
             <div
               key={index}
-              className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+              className="grid items-center p-3 bg-gray-50 rounded-lg grid-cols-4 gap-2"
             >
               <span className="text-sm text-gray-800">
-                用户（{formatAddress(item.user, 6, 6)}）
+                用户：{formatAddress(item.user, 6, 6)}
               </span>
-              <span className="font-semibold text-blue-600">
+              <span className="font-semibold text-blue-600 text-center">
                 {prizeMap[item.prize]}
               </span>
-              <span className="text-green-600 font-semibold ml-2">
-                {item.amount > 0 ? `金额：${item.amount}` : ""}
+              <span className="text-green-600 font-semibold text-center">
+                {item.amount > 0
+                  ? `${formatEther(BigInt(item.amount))} ETH`
+                  : ""}
               </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-500 text-right">
                 {formatTimestamp(item.timestamp)}
               </span>
             </div>
