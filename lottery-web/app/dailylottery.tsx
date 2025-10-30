@@ -392,7 +392,10 @@ export function DailyLotteryWinners() {
             ) : (
               <>
                 <span className="text-sm text-gray-600">
-                  用户（{formatAddress(winner.winner.toString(), 6, 6)}）
+                  第{winner.lotteryNumber}期
+                </span>
+                <span className="text-sm text-gray-600">
+                  用户：（{formatAddress(winner.winner.toString(), 6, 6)}）
                 </span>
                 <span className="text-sm text-gray-600">
                   <div
