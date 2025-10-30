@@ -6,20 +6,25 @@ ps：项目还有不少可优化空间，仅供学习使用。
 - 刮刮乐（实时开奖）：点击“刮奖”按钮（刮一张），根据概率判断当前用户是否中奖，以及中奖类型（中奖概率及奖金是随意配置）。
   - 大奖：中奖概率：0.01%，可获取当前奖池的50%奖金。
   - 小奖：中奖概率：1%，可获取当前奖池的5%奖金。
-  - 幸运奖：中奖概率：5%，可获取当前奖池的1%奖金。
+  - 幸运奖：中奖概率：5%，可获取当前奖池的1%奖金。 
+
+用户中奖后，平台从奖金中抽佣5%作为手续费，其余部分才是实际到账金额。
+
+注意事项：
+- 刮刮乐操作，因为实时开奖，需要等待chainlink的VRF合约回调，因此等待时间较长。
+- 如果操作后，刷新中奖名单/抽奖记录列表，没有及时显示当前操作结果，是因为测试部署The Graph区域同步延迟导致。
 
 ### lottery-contract
 Solidity合约项目，通过 Foundry 进行合约测试与部署，使用 The Graph 实现链上数据索引。
 
-合约开发时，采用代理合约模式，方便后续合约升级。
 #### 天天有奖
-代理合约DailyLottery，存储数据和逻辑合约指针。逻辑合约分为：
+- DailyLottery：入口合约：存储数据，以及组装业务逻辑调用
 - IDailyLotteryToken： 天天有奖中奖Token合约
 - IDailyLotteryNumberLogic：获取抽奖号码，及选择中奖号码
 - IDailyLotteryRandProvider：随机数提供者，基于chainlink的VRF实现
 
 #### 刮刮乐
-代理合约ScratchCard，存储数据和逻辑合约指针。逻辑合约分为：
+- ScratchCard：入口合约：存储数据，以及组装业务逻辑调用
 - IScratchCardToken：刮刮乐中奖Token合约
 - IScratchCardResult：封装中奖算法逻辑，提供中奖结果
 - IScratchCardRandProvider：随机数提供者，基于chainlink的VRF实现
