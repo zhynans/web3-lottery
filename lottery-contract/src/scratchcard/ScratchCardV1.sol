@@ -1,20 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IScratchCardResult} from "./scratchcard/interface/IScratchCardResult.sol";
-import {IScratchCardToken} from "./scratchcard/interface/IScratchCardToken.sol";
-import {ScratchCardPrize} from "./scratchcard/ScratchCardDef.sol";
-import {IScratchCardRandCallback} from "./scratchcard/interface/IScratchCardRand.sol";
-import {IScratchCardRandProvider} from "./scratchcard/interface/IScratchCardRand.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {IScratchCardConfig} from "./interface/IScratchCardConfig.sol";
+import {IScratchCardRandCallback} from "./interface/IScratchCardRand.sol";
+import {IScratchCardRandProvider} from "./interface/IScratchCardRand.sol";
+import {IScratchCardResult} from "./interface/IScratchCardResult.sol";
+import {IScratchCardToken} from "./interface/IScratchCardToken.sol";
+import {ScratchCardPrize} from "./ScratchCardDef.sol";
 
-contract ScratchCard is IScratchCardRandCallback, Ownable {
-    IScratchCardResult public scratchCardResult;
-    IScratchCardToken public scratchCardToken;
-    IScratchCardRandProvider public scratchCardRandProvider;
-
-    uint256 public price = 0.001 ether; // price of scratch card every time
-    uint8 public feeRate = 5; // fee rate
+contract ScratchCardV1 is
+    IScratchCardRandCallback,
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable
+{
+    IScratchCardResult public resultContract;
+    IScratchCardToken public tokenContract;
+    IScratchCardRandProvider public randProviderContract;
+    IScratchCardConfig public configContract;
 
     struct WinnerData {
         address user;
@@ -39,15 +45,32 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
         uint256 randomNumber
     );
 
-    constructor(
-        address _scratchCardResult,
-        address _scratchCardToken,
-        address _scratchCardRandProvider
-    ) Ownable(msg.sender) {
-        scratchCardResult = IScratchCardResult(_scratchCardResult);
-        scratchCardToken = IScratchCardToken(_scratchCardToken);
-        scratchCardRandProvider = IScratchCardRandProvider(_scratchCardRandProvider);
+    // =================== upgradable function =============
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers(); // 把 initialized 状态设置为 true，防止逻辑合约被攻击者初始化
     }
+
+    function initialize(
+        address _resultAddr,
+        address _tokenAddr,
+        address _randProviderAddr,
+        address _configAddr
+    ) public initializer {
+        __Ownable_init(msg.sender);
+        __UUPSUpgradeable_init();
+
+        resultContract = IScratchCardResult(_resultAddr);
+        tokenContract = IScratchCardToken(_tokenAddr);
+        randProviderContract = IScratchCardRandProvider(_randProviderAddr);
+        configContract = IScratchCardConfig(_configAddr);
+    }
+
+    // UUPS授权函数（必须实现）：不需要执行额外逻辑，真正的安全逻辑由修饰器onlyOwner控制，防止恶意升级
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+    // =================== business function =============
 
     // fund the contract by owner
     function fund() public payable onlyOwner {}
@@ -56,10 +79,11 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
 
     function scratchCard() public payable {
         // check buy amount
+        uint256 price = _price();
         require(msg.value == price, WrongPrice(msg.value));
 
         // request random numbers
-        scratchCardRandProvider.requestRandomNumbers(msg.sender);
+        randProviderContract.requestRandomNumbers(msg.sender);
 
         // emit scratch card request
         emit ScratchCardEvent(msg.sender, block.timestamp, msg.value);
@@ -70,10 +94,10 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
 
     function callbackFromRand(address _user, uint256 _randomNumber) external override {
         // check if the sender is the random manager
-        require(msg.sender == address(scratchCardRandProvider), OnlyRandProvider(msg.sender));
+        require(msg.sender == address(randProviderContract), OnlyRandProvider(msg.sender));
 
         // get lottery result
-        ScratchCardPrize prize = scratchCardResult.getResult(_randomNumber);
+        ScratchCardPrize prize = resultContract.getResult(_randomNumber);
 
         // if no prize, return immediately
         if (prize == ScratchCardPrize.NoPrize) {
@@ -82,7 +106,7 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
         }
 
         // mint prize token
-        scratchCardToken.safeMint(_user, prize);
+        tokenContract.safeMint(_user, prize);
 
         // handle prize and fee
         (, uint256 prizeAmount) = _handleFeeAndPrize(_user, prize);
@@ -128,7 +152,8 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
         }
 
         // caculate fee
-        feeAmount = (reward * feeRate) / 100;
+        uint8 feeRate = _feeRate();
+        feeAmount = (reward * uint256(feeRate)) / 100;
         prizeAmount = reward - feeAmount;
 
         // transfer fee to owner
@@ -142,25 +167,31 @@ contract ScratchCard is IScratchCardRandCallback, Ownable {
         return (feeAmount, prizeAmount);
     }
 
+    // =========== config function ===========
+
+    function _price() private view returns (uint256) {
+        return configContract.Price();
+    }
+
+    function _feeRate() private view returns (uint8) {
+        return configContract.FeeRate();
+    }
+
     // =========== set function ===========
 
     function setResultAddress(address _address) public onlyOwner {
-        scratchCardResult = IScratchCardResult(_address);
+        resultContract = IScratchCardResult(_address);
     }
 
     function setTokenAddress(address _address) public onlyOwner {
-        scratchCardToken = IScratchCardToken(_address);
+        tokenContract = IScratchCardToken(_address);
     }
 
     function setRandProviderAddress(address _address) public onlyOwner {
-        scratchCardRandProvider = IScratchCardRandProvider(_address);
+        randProviderContract = IScratchCardRandProvider(_address);
     }
 
-    function setPrice(uint256 _price) public onlyOwner {
-        price = _price;
-    }
-
-    function setFeeRate(uint8 _feeRate) public onlyOwner {
-        feeRate = _feeRate;
+    function setConfigAddress(address _address) public onlyOwner {
+        configContract = IScratchCardConfig(_address);
     }
 }

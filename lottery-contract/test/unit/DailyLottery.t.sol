@@ -4,15 +4,17 @@ pragma solidity ^0.8.30;
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
-import {DailyLottery} from "src/DailyLottery.sol";
+import {DailyLotteryV1} from "src/dailylottery/DailyLotteryV1.sol";
 import {DailyLotteryTokenV1} from "src/dailylottery/DailyLotteryTokenV1.sol";
 import {DailyLotteryNumberLogicV1} from "src/dailylottery/DailyLotteryNumberLogicV1.sol";
 import {DailyLotteryVRFProvider} from "src/dailylottery/DailyLotteryVRFProvider.sol";
+import {DailyLotteryConfigV1} from "src/dailylottery/DailyLotteryConfigV1.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {LotteryDrawState} from "src/dailylottery/DailyLotteryDef.sol";
 
 contract DailyLotteryTest is Test {
     address deployer = makeAddr("deployer");
-    DailyLottery public dailyLottery;
+    DailyLotteryV1 public dailyLottery;
     uint96 baseFee = 0.1 ether; // mock base fee
     uint96 gasPriceLink = 1e9; // mock gas price link
     int256 weiPerUnitLink = 4e15; // 0.004 ether per LINK, aligns with mocks
@@ -37,11 +39,22 @@ contract DailyLotteryTest is Test {
         vrfCoordinator.addConsumer(subId, address(lotteryVRFProvider));
         vrfCoordinator.fundSubscription(subId, 100 ether); // mock fund subscription
 
-        dailyLottery = new DailyLottery(
+        // deploy DailyLotteryConfigV1 contract
+        DailyLotteryConfigV1 dailyLotteryConfig = new DailyLotteryConfigV1();
+
+        // deploy DailyLottery implementation contract
+        DailyLotteryV1 implementation = new DailyLotteryV1();
+
+        // deploy proxy and initialize
+        bytes memory initData = abi.encodeWithSelector(
+            DailyLotteryV1.initialize.selector,
             address(dailyLotteryToken),
             address(dailyLotteryNumberLogic),
-            address(lotteryVRFProvider)
+            address(lotteryVRFProvider),
+            address(dailyLotteryConfig)
         );
+        ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
+        dailyLottery = DailyLotteryV1(address(proxy));
 
         // update the callback asetCallbackAddressyVRFProvider to dailyLottery
         lotteryVRFProvider.setCallbackAddress(address(dailyLottery));
@@ -127,7 +140,7 @@ contract DailyLotteryTest is Test {
         // We check the indexed parameters (lotteryNumber and user) exactly
         // and ignore the non-indexed parameter (numbers array)
         vm.expectEmit(true, true, false, false, address(dailyLottery));
-        emit DailyLottery.TakeNumbersEvent(expectedLotteryNumber, account, new uint64[](0));
+        emit DailyLotteryV1.TakeNumbersEvent(expectedLotteryNumber, account, new uint64[](0));
 
         // take numbers
         vm.prank(account);
@@ -164,7 +177,7 @@ contract DailyLotteryTest is Test {
 
         // draw lottery again
         vm.prank(deployer);
-        vm.expectRevert(DailyLottery.DrawingInProgress.selector);
+        vm.expectRevert(DailyLotteryV1.DrawingInProgress.selector);
         dailyLottery.drawLottery(lotteryNumber);
     }
 
@@ -193,7 +206,7 @@ contract DailyLotteryTest is Test {
         vm.prank(deployer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                DailyLottery.MinDrawIntervalNotMet.selector,
+                DailyLotteryV1.MinDrawIntervalNotMet.selector,
                 drawTime,
                 block.timestamp
             )
@@ -221,7 +234,7 @@ contract DailyLotteryTest is Test {
         vm.prank(deployer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                DailyLottery.MinDrawIntervalNotMet.selector,
+                DailyLotteryV1.MinDrawIntervalNotMet.selector,
                 drawTime,
                 block.timestamp
             )
@@ -250,7 +263,7 @@ contract DailyLotteryTest is Test {
         vm.prank(deployer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                DailyLottery.WrongLotteryNumber.selector,
+                DailyLotteryV1.WrongLotteryNumber.selector,
                 wrongLotteryNumber,
                 currentLotteryNumber
             )
@@ -310,7 +323,7 @@ contract DailyLotteryTest is Test {
         assertTrue(finalDrawState == LotteryDrawState.Drawn);
         assertEq(dailyLottery.lotteryNumber(), oldLotteryNumber + 1);
 
-        DailyLottery.WinnerData memory winnerData = dailyLottery.getWinnerData(oldLotteryNumber);
+        DailyLotteryV1.WinnerData memory winnerData = dailyLottery.getWinnerData(oldLotteryNumber);
 
         assertTrue(winnerData.winner == account || winnerData.winner == account2);
         assertTrue(winnerData.tokenId == 0);

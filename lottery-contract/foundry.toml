@@ -4,6 +4,8 @@ out = "out"
 libs = ["lib", "node_modules"]
 PRIVATE_KEY_1 = "${PRIVATE_KEY_1}"
 
+fs_permissions = [{ access = "read-write", path = "./deployments" }]
+
 [lint]
 exclude_lints = [
     "mixed-case-function",
