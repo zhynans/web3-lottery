@@ -26,7 +26,7 @@ contract DailyLotteryV1 is
 
     uint64 public lotteryNumber; // current lottery number
 
-    uint64 public minDrawInterval = 1 days - 1 hours; // min interval between two lotteries
+    uint64 public minDrawInterval; // min interval between two lotteries
 
     struct WinnerData {
         address winner; // the address of the winner
@@ -95,6 +95,7 @@ contract DailyLotteryV1 is
         numberLogicContract = IDailyLotteryNumberLogic(_numberLogicAddr);
         randProviderContract = IDailyLotteryRandProvider(_randProviderAddr);
         configContract = IDailyLotteryConfig(_configAddr);
+        minDrawInterval = 1 days - 1 hours;
 
         // initialize lottery data
         initNextLotteryData();
