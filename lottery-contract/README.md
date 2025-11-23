@@ -21,28 +21,27 @@ anvil
 $ anvil --port 8545 --chain-id 31337 --mnemonic "test test test test test test test test test test test junk"
 ```
 
-本地部署脚本脚本：
-Anvil本地链
+#### 部署脚本
 
 ````shell
 # dailyLottery
-$ forge script script/dailylottery/DeployDailyLotteryConfigV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
-$ forge script script/dailylottery/DeployDailyLotteryNumberLogicV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
-$ forge script script/dailylottery/DeployDailyLotteryTokenV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
-$ forge script script/dailylottery/DeployDailyLotteryVRFProvider.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
-$ forge script script/dailylottery/DeployDailyLotteryV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
-$ forge script script/dailylottery/DeployDailyLotteryProxy.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
+$ forge script script/dailylottery/DeployDailyLotteryConfigV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/dailylottery/DeployDailyLotteryNumberLogicV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/dailylottery/DeployDailyLotteryTokenV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/dailylottery/DeployDailyLotteryVRFProvider.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/dailylottery/DeployDailyLotteryV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/dailylottery/DeployDailyLotteryProxy.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
 
 # scratchCard
-$ forge script script/scratchcard/DeployScratchCardConfigV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
-$ forge script script/scratchcard/DeployScratchCardResultV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
-$ forge script script/scratchcard/DeployScratchCardTokenV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
-$ forge script script/scratchcard/DeployScratchCardV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
-$ forge script script/scratchcard/DeployScratchCardVRFProvider.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
-$ forge script script/scratchcard/DeployScratchCardProxy.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
+$ forge script script/scratchcard/DeployScratchCardConfigV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/scratchcard/DeployScratchCardResultV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/scratchcard/DeployScratchCardTokenV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/scratchcard/DeployScratchCardV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/scratchcard/DeployScratchCardVRFProvider.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/scratchcard/DeployScratchCardProxy.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
 ```
 
-本地The Graph
+#### 本地部署The Graph容器
 
 ```shell
 $ docker-compose up
