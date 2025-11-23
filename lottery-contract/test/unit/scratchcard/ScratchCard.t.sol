@@ -2,20 +2,28 @@
 pragma solidity ^0.8.30;
 
 import {Test} from "forge-std/Test.sol";
-import {ScratchCard} from "src/ScratchCard.sol";
+import {ScratchCardV1} from "src/scratchcard/ScratchCardV1.sol";
 import {ScratchCardResultV1} from "src/scratchcard/ScratchCardResultV1.sol";
 import {ScratchCardTokenV1} from "src/scratchcard/ScratchCardTokenV1.sol";
 import {ScratchCardVRFProvider} from "src/scratchcard/ScratchCardVRFProvider.sol";
+import {ScratchCardConfigV1} from "src/scratchcard/ScratchCardConfigV1.sol";
+import {IScratchCardResult} from "src/scratchcard/interface/IScratchCardResult.sol";
+import {IScratchCardToken} from "src/scratchcard/interface/IScratchCardToken.sol";
+import {IScratchCardRandProvider} from "src/scratchcard/interface/IScratchCardRand.sol";
+import {IScratchCardConfig} from "src/scratchcard/interface/IScratchCardConfig.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 import {ScratchCardPrize} from "src/scratchcard/ScratchCardDef.sol";
+import {ScratchCardVx} from "./mock/ScratchCardVx.sol";
 
 contract ScratchCardTest is Test {
     address deployer = makeAddr("deployer");
-    ScratchCard public scratchCard;
+    ScratchCardV1 public scratchCard;
 
-    ScratchCardResultV1 public scratchCardResult;
-    ScratchCardTokenV1 public scratchCardToken;
-    ScratchCardVRFProvider public scratchCardVRFProvider;
+    IScratchCardResult public resultContract;
+    IScratchCardToken public tokenContract;
+    IScratchCardRandProvider public vrfProviderContract;
+    IScratchCardConfig public configContract;
 
     VRFCoordinatorV2_5Mock public vrfCoordinator;
     uint256 public subId;
@@ -30,8 +38,8 @@ contract ScratchCardTest is Test {
         vm.startPrank(deployer);
 
         // Deploy ScratchCard components
-        scratchCardResult = new ScratchCardResultV1();
-        scratchCardToken = new ScratchCardTokenV1();
+        resultContract = new ScratchCardResultV1();
+        tokenContract = new ScratchCardTokenV1();
 
         // Deploy VRF coordinator mock
         vrfCoordinator = new VRFCoordinatorV2_5Mock(BASE_FEE, GAS_PRICE_LINK, WEI_PER_UNIT_LINK);
@@ -40,30 +48,36 @@ contract ScratchCardTest is Test {
         subId = vrfCoordinator.createSubscription();
 
         // Deploy VRF provider
-        scratchCardVRFProvider = new ScratchCardVRFProvider(
-            address(vrfCoordinator),
-            subId,
-            KEY_HASH
-        );
+        vrfProviderContract = new ScratchCardVRFProvider(address(vrfCoordinator), subId, KEY_HASH);
 
         // Add consumer to subscription
-        vrfCoordinator.addConsumer(subId, address(scratchCardVRFProvider));
+        vrfCoordinator.addConsumer(subId, address(vrfProviderContract));
 
         // Fund subscription
         vrfCoordinator.fundSubscription(subId, 100 ether);
 
-        // Deploy main ScratchCard contract
-        scratchCard = new ScratchCard(
-            address(scratchCardResult),
-            address(scratchCardToken),
-            address(scratchCardVRFProvider)
+        // Deploy config contract
+        configContract = new ScratchCardConfigV1();
+
+        // Deploy main ScratchCard implementation contract
+        ScratchCardV1 implementation = new ScratchCardV1();
+
+        // Deploy proxy and initialize
+        bytes memory initData = abi.encodeWithSelector(
+            ScratchCardV1.initialize.selector,
+            address(resultContract),
+            address(tokenContract),
+            address(vrfProviderContract),
+            address(configContract)
         );
+        ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initData);
+        scratchCard = ScratchCardV1(address(proxy));
 
         // Set up callback address
-        scratchCardVRFProvider.setCallbackAddress(address(scratchCard));
+        vrfProviderContract.setCallbackAddress(address(scratchCard));
 
         // Set allowed minter for token
-        scratchCardToken.setAllowedMinter(address(scratchCard));
+        tokenContract.setAllowedMinter(address(scratchCard));
 
         vm.stopPrank();
     }
@@ -71,9 +85,9 @@ contract ScratchCardTest is Test {
     // ============ Constructor Tests ============
 
     function test_Constructor_SetsCorrectAddresses() public view {
-        assertEq(address(scratchCard.scratchCardResult()), address(scratchCardResult));
-        assertEq(address(scratchCard.scratchCardToken()), address(scratchCardToken));
-        assertEq(address(scratchCard.scratchCardRandProvider()), address(scratchCardVRFProvider));
+        assertEq(address(scratchCard.resultContract()), address(resultContract));
+        assertEq(address(scratchCard.tokenContract()), address(tokenContract));
+        assertEq(address(scratchCard.randProviderContract()), address(vrfProviderContract));
     }
 
     function test_Constructor_SetsCorrectOwner() public view {
@@ -81,8 +95,8 @@ contract ScratchCardTest is Test {
     }
 
     function test_Constructor_SetsDefaultValues() public view {
-        assertEq(scratchCard.price(), 0.001 ether);
-        assertEq(scratchCard.feeRate(), 5);
+        // Values are now stored in config contract, so we verify config contract is set
+        assertTrue(address(scratchCard.configContract()) != address(0));
     }
 
     // ============ Fund Tests ============
@@ -121,7 +135,7 @@ contract ScratchCardTest is Test {
         vm.deal(user, 1 ether);
 
         vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(ScratchCard.WrongPrice.selector, 0.002 ether));
+        vm.expectRevert(abi.encodeWithSelector(ScratchCardV1.WrongPrice.selector, 0.002 ether));
         scratchCard.scratchCard{value: 0.002 ether}();
     }
 
@@ -130,7 +144,7 @@ contract ScratchCardTest is Test {
         vm.deal(user, 1 ether);
 
         vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(ScratchCard.WrongPrice.selector, 0));
+        vm.expectRevert(abi.encodeWithSelector(ScratchCardV1.WrongPrice.selector, 0));
         scratchCard.scratchCard{value: 0}();
     }
 
@@ -140,7 +154,7 @@ contract ScratchCardTest is Test {
 
         // 仅校验 indexed 的 user topic，避免对 timestamp 等易变字段的断言
         vm.expectEmit(true, false, false, false);
-        emit ScratchCard.ScratchCardEvent(user, 0, 0.001 ether);
+        emit ScratchCardV1.ScratchCardEvent(user, 0, 0.001 ether);
 
         vm.prank(user);
         scratchCard.scratchCard{value: 0.001 ether}();
@@ -160,11 +174,11 @@ contract ScratchCardTest is Test {
 
         // Expect LotteryResultEvent with NoPrize (only check indexed topic: user)
         vm.expectEmit(true, false, false, false);
-        emit ScratchCard.LotteryResultEvent(user, 0, ScratchCardPrize.NoPrize, 0, 0);
+        emit ScratchCardV1.LotteryResultEvent(user, 0, ScratchCardPrize.NoPrize, 0, 0);
 
         // Simulate callback with random number that results in NoPrize
         // (ScratchCardResultV1 will determine the prize based on random number)
-        vm.prank(address(scratchCardVRFProvider));
+        vm.prank(address(vrfProviderContract));
         scratchCard.callbackFromRand(user, 0); // Very small number should result in NoPrize
 
         // Verify no winner records (arrays should be empty)
@@ -196,7 +210,7 @@ contract ScratchCardTest is Test {
 
         // Simulate callback with random number that results in GrandPrize
         // Use a random number that is divisible by 10000 (GrandPrize probability)
-        vm.prank(address(scratchCardVRFProvider));
+        vm.prank(address(vrfProviderContract));
         scratchCard.callbackFromRand(user, 10000);
 
         // Verify balance changes
@@ -229,7 +243,7 @@ contract ScratchCardTest is Test {
 
         // Simulate callback with random number that results in SmallPrize
         // Use a random number that is divisible by 100 (SmallPrize probability)
-        vm.prank(address(scratchCardVRFProvider));
+        vm.prank(address(vrfProviderContract));
         scratchCard.callbackFromRand(user, 100);
 
         // Verify balance changes
@@ -262,7 +276,7 @@ contract ScratchCardTest is Test {
 
         // Simulate callback with random number that results in LuckyPrize
         // Use a random number that is divisible by 20 (LuckyPrize probability)
-        vm.prank(address(scratchCardVRFProvider));
+        vm.prank(address(vrfProviderContract));
         scratchCard.callbackFromRand(user, 20);
 
         // Verify balance changes
@@ -292,7 +306,7 @@ contract ScratchCardTest is Test {
 
         // Should revert on transfer failure when trying to send fee to owner
         vm.expectRevert();
-        vm.prank(address(scratchCardVRFProvider));
+        vm.prank(address(vrfProviderContract));
         scratchCard.callbackFromRand(user, 10000); // GrandPrize
     }
 
@@ -317,7 +331,7 @@ contract ScratchCardTest is Test {
         uint256 initialUserBalance = user.balance;
 
         // Simulate callback
-        vm.prank(address(scratchCardVRFProvider));
+        vm.prank(address(vrfProviderContract));
         scratchCard.callbackFromRand(user, 10000); // GrandPrize
 
         // Verify balance changes
@@ -340,13 +354,13 @@ contract ScratchCardTest is Test {
         address user2 = makeAddr("user2");
 
         // Test multiple winners of different types
-        vm.prank(address(scratchCardVRFProvider));
+        vm.prank(address(vrfProviderContract));
         scratchCard.callbackFromRand(user1, 10000); // GrandPrize
 
-        vm.prank(address(scratchCardVRFProvider));
+        vm.prank(address(vrfProviderContract));
         scratchCard.callbackFromRand(user2, 100); // SmallPrize
 
-        vm.prank(address(scratchCardVRFProvider));
+        vm.prank(address(vrfProviderContract));
         scratchCard.callbackFromRand(user1, 20); // LuckyPrize
 
         // Verify that the function executed successfully
@@ -366,7 +380,7 @@ contract ScratchCardTest is Test {
         uint256 beforeCall = block.timestamp;
 
         // Simulate callback
-        vm.prank(address(scratchCardVRFProvider));
+        vm.prank(address(vrfProviderContract));
         scratchCard.callbackFromRand(user, 10000); // GrandPrize
 
         uint256 afterCall = block.timestamp;
@@ -397,7 +411,7 @@ contract ScratchCardTest is Test {
 
         // Zero address user will cause ERC721 minting to fail
         // This is expected behavior since ERC721 doesn't allow minting to zero address
-        vm.prank(address(scratchCardVRFProvider));
+        vm.prank(address(vrfProviderContract));
         vm.expectRevert();
         scratchCard.callbackFromRand(address(0), 10000); // GrandPrize
     }
@@ -408,7 +422,7 @@ contract ScratchCardTest is Test {
         // Only the VRF provider should be able to call this function
         // Test that non-VRF provider cannot call the function
         vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(ScratchCard.OnlyRandProvider.selector, user));
+        vm.expectRevert(abi.encodeWithSelector(ScratchCardV1.OnlyRandProvider.selector, user));
         scratchCard.callbackFromRand(user, 12345);
     }
 
@@ -423,7 +437,7 @@ contract ScratchCardTest is Test {
         address user = makeAddr("user");
 
         // VRF provider should be able to call this function successfully
-        vm.prank(address(scratchCardVRFProvider));
+        vm.prank(address(vrfProviderContract));
         scratchCard.callbackFromRand(user, 0); // NoPrize
 
         // Function should execute successfully
@@ -435,5 +449,117 @@ contract ScratchCardTest is Test {
         scratchCard.fund{value: 0}();
 
         assertEq(address(scratchCard).balance, 0);
+    }
+
+    // =================== Upgradeable Contract Tests =================
+
+    function test_Constructor_DisablesInitialization() public {
+        // Deploy implementation contract directly (not through proxy)
+        ScratchCardV1 implementation = new ScratchCardV1();
+
+        // Try to initialize the implementation contract directly - should fail
+        // because constructor calls _disableInitializers()
+        vm.expectRevert();
+        implementation.initialize(
+            address(resultContract),
+            address(tokenContract),
+            address(vrfProviderContract),
+            address(configContract)
+        );
+    }
+
+    function test_Upgrade_ToScratchCardVx() public {
+        // Deploy new implementation (ScratchCardVx)
+        ScratchCardVx newImplementation = new ScratchCardVx();
+
+        // Store some state before upgrade
+        address resultContractBefore = address(scratchCard.resultContract());
+        address tokenContractBefore = address(scratchCard.tokenContract());
+        address randProviderContractBefore = address(scratchCard.randProviderContract());
+        address configContractBefore = address(scratchCard.configContract());
+
+        // Upgrade the contract as owner
+        vm.prank(deployer);
+        scratchCard.upgradeToAndCall(address(newImplementation), "");
+
+        // Verify the implementation was upgraded
+        // Check that we can call the new function from ScratchCardVx
+        (bool success, bytes memory data) = address(scratchCard).call(
+            abi.encodeWithSignature("version()")
+        );
+        assertTrue(success);
+        string memory version = abi.decode(data, (string));
+        assertEq(version, "Vx");
+
+        // Verify state is preserved after upgrade
+        assertEq(address(scratchCard.resultContract()), resultContractBefore);
+        assertEq(address(scratchCard.tokenContract()), tokenContractBefore);
+        assertEq(address(scratchCard.randProviderContract()), randProviderContractBefore);
+        assertEq(address(scratchCard.configContract()), configContractBefore);
+    }
+
+    function test_Upgrade_OnlyOwner() public {
+        // Deploy new implementation
+        ScratchCardVx newImplementation = new ScratchCardVx();
+
+        // Non-owner tries to upgrade - should fail
+        address nonOwner = makeAddr("nonOwner");
+        vm.prank(nonOwner);
+        vm.expectRevert();
+        scratchCard.upgradeToAndCall(address(newImplementation), "");
+
+        // Owner can upgrade
+        vm.prank(deployer);
+        scratchCard.upgradeToAndCall(address(newImplementation), "");
+    }
+
+    function test_Upgrade_PreservesState() public {
+        // Create some state before upgrade
+        vm.deal(deployer, 10 ether);
+        vm.prank(deployer);
+        scratchCard.fund{value: 1 ether}();
+
+        uint256 balanceBefore = address(scratchCard).balance;
+        address resultContractBefore = address(scratchCard.resultContract());
+        address tokenContractBefore = address(scratchCard.tokenContract());
+
+        // Deploy new implementation
+        ScratchCardVx newImplementation = new ScratchCardVx();
+
+        // Upgrade
+        vm.prank(deployer);
+        scratchCard.upgradeToAndCall(address(newImplementation), "");
+
+        // Verify state is preserved
+        assertEq(address(scratchCard).balance, balanceBefore);
+        assertEq(address(scratchCard.resultContract()), resultContractBefore);
+        assertEq(address(scratchCard.tokenContract()), tokenContractBefore);
+
+        // Verify existing functions still work
+        assertEq(
+            address(scratchCard.randProviderContract()),
+            address(scratchCard.randProviderContract())
+        );
+    }
+
+    function test_Upgrade_NewFunctionAvailable() public {
+        // Deploy new implementation with new function
+        ScratchCardVx newImplementation = new ScratchCardVx();
+
+        // Before upgrade, version() function should not exist
+        (bool successBefore, ) = address(scratchCard).call(abi.encodeWithSignature("version()"));
+        assertFalse(successBefore);
+
+        // Upgrade
+        vm.prank(deployer);
+        scratchCard.upgradeToAndCall(address(newImplementation), "");
+
+        // After upgrade, version() function should work
+        (bool successAfter, bytes memory data) = address(scratchCard).call(
+            abi.encodeWithSignature("version()")
+        );
+        assertTrue(successAfter);
+        string memory version = abi.decode(data, (string));
+        assertEq(version, "Vx");
     }
 }

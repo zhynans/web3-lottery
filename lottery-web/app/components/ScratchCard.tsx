@@ -7,6 +7,7 @@ import { parseEther } from "viem";
 import { getConfig } from "../wagmi";
 import toast from "react-hot-toast";
 import { scratchCardAbi } from "../lib/abi";
+import {GAS_LIMIT} from "@/app/util/constans";
 
 const price = parseEther("0.001");
 const thanksLogs = {
@@ -119,6 +120,7 @@ export function ScratchCard({ contractAddress, isReady }: ScratchCardProps) {
         address: contractAddress,
         functionName: "scratchCard",
         value: price,
+        gas: GAS_LIMIT,
       });
 
       // 等待交易确认

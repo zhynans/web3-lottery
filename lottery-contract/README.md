@@ -1,33 +1,18 @@
-## Foundry
+## lottery-contract
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+### 项目介绍
 
-Foundry consists of:
+去中心化彩票项目的合约代码，分为两部分：天天有奖 和 刮刮乐。
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
-
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Test
-
-```shell
-$ forge test
-```
-
-### Local Deploy
+### 部署命令
 
 Foundry 默认 不会自动加载 .env，需要在 shell 中加载：
 
 ```
 $ source .env
 ```
+
+如果要使用`.env.local`或者`.env.test`，最好是复制内容覆盖`.env`文件，再执行部署脚本。因为`source .env.local`后的环境变量在`forge script`是读取不到的。
 
 anvil
 使用自定义的助记词来生成账户。在不同 Anvil 实例之间复用相同账户非常有用。
@@ -36,15 +21,27 @@ anvil
 $ anvil --port 8545 --chain-id 31337 --mnemonic "test test test test test test test test test test test junk"
 ```
 
-本地部署脚本脚本：
-Anvil本地链
+#### 部署脚本
 
 ````shell
-$ forge script script/LocalAllDeployDailyLottery.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
-$ forge script script/LocalAllDeployScratchCard.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast
+# dailyLottery
+$ forge script script/dailylottery/DeployDailyLotteryConfigV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/dailylottery/DeployDailyLotteryNumberLogicV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/dailylottery/DeployDailyLotteryTokenV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/dailylottery/DeployDailyLotteryVRFProvider.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/dailylottery/DeployDailyLotteryV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/dailylottery/DeployDailyLotteryProxy.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+
+# scratchCard
+$ forge script script/scratchcard/DeployScratchCardConfigV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/scratchcard/DeployScratchCardResultV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/scratchcard/DeployScratchCardTokenV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/scratchcard/DeployScratchCardV1.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/scratchcard/DeployScratchCardVRFProvider.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
+$ forge script script/scratchcard/DeployScratchCardProxy.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
 ```
 
-本地The Graph
+#### 本地部署The Graph容器
 
 ```shell
 $ docker-compose up
@@ -56,12 +53,3 @@ $ graph remove --node http://localhost:8020/ zhynans-web3-lottery
 
 $ docker-compose down
 ````
-
-sepolia部署脚本：
-
-```shell
-$ forge script --chain sepolia script/AllDeployDailyLottery.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
-$ forge script --chain sepolia script/AllDeployScratchCard.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
-
-$ forge script --chain sepolia script/DeployDailyLottery.s.sol --rpc-url $CHAIN_RPC_URL -vvvv --broadcast --verify
-```

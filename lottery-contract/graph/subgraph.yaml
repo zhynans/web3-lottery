@@ -9,7 +9,7 @@ dataSources:
     network: sepolia
     source:
       abi: DailyLottery
-      address: "0x7f715Ed1913546c5009dF9e31c62B57d5735980b"
+      address: "0xfEBf9E24367ec11E395e8033d11998ec665d5639"
       startBlock: 9192999
     mapping:
       kind: ethereum/events
@@ -31,7 +31,7 @@ dataSources:
     name: ScratchCard
     network: sepolia
     source:
-      address: "0xD3892a4fF86edde565938463DE9F3C440D11F293"
+      address: "0xfDad1dd3c09c598B44DEF75d1aCB49dB249BA279"
       abi: ScratchCard
       startBlock: 9192999
     mapping:

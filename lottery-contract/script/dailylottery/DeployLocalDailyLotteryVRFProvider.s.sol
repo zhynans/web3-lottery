@@ -1,33 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {Script} from "forge-std/Script.sol";
-import {DailyLotteryNumberLogicV1} from "src/dailylottery/DailyLotteryNumberLogicV1.sol";
-import {IDailyLotteryToken} from "src/dailylottery/interface/IDailyLotteryToken.sol";
-import {DailyLotteryTokenV1} from "src/dailylottery/DailyLotteryTokenV1.sol";
+import {DEPLOY_RAND_PROVIDER_ADDR} from "./Constants.sol";
+import {BaseDailyLotteryDeploy} from "./BaseDailyLotteryDeploy.s.sol";
 import {DailyLotteryVRFProvider} from "src/dailylottery/DailyLotteryVRFProvider.sol";
-import {DailyLottery} from "src/DailyLottery.sol";
 import {VRFCoordinatorV2_5Mock} from "script/mock/VRFCoordinatorV2_5Mock.sol";
 
-contract LocalAllDeployDailyLottery is Script {
+contract DeployLocalDailyLotteryVRFProvider is BaseDailyLotteryDeploy {
     uint96 public constant BASE_FEE = 0.1 ether;
     uint96 public constant GAS_PRICE_LINK = 1e9;
     int256 public constant WEI_PER_UNIT_LINK = 4e15;
     bytes32 public constant KEY_HASH =
         0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef;
 
-    function run() public returns (DailyLottery dailyLottery) {
+    function run() public returns (address vrfProviderAddress) {
+        string memory deploymentFile = getDeploymentFilePath();
+
         // env variables
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY_1");
 
         // start broadcast
         vm.startBroadcast(deployerPrivateKey);
-
-        // deploy DailyLotteryNumberLogicV1 contract
-        DailyLotteryNumberLogicV1 dailyLotteryNumberLogicV1 = new DailyLotteryNumberLogicV1();
-
-        // deploy DailyLotteryTokenV1 contract
-        IDailyLotteryToken dailyLotteryToken = new DailyLotteryTokenV1();
 
         // Deploy VRF coordinator mock
 
@@ -45,29 +38,20 @@ contract LocalAllDeployDailyLottery is Script {
             subId,
             KEY_HASH
         );
+        vrfProviderAddress = address(dailyLotteryVRFProvider);
 
         // Add consumer to subscription
-        vrfCoordinator.addConsumer(subId, address(dailyLotteryVRFProvider));
+        vrfCoordinator.addConsumer(subId, vrfProviderAddress);
 
         // Fund subscription
         vrfCoordinator.fundSubscription(subId, 100 ether);
 
-        // deploy DailyLottery contract
-        dailyLottery = new DailyLottery(
-            address(dailyLotteryToken),
-            address(dailyLotteryNumberLogicV1),
-            address(dailyLotteryVRFProvider)
-        );
-
-        // set callback address
-        dailyLotteryVRFProvider.setCallbackAddress(address(dailyLottery));
-
-        // set allowed minter
-        dailyLotteryToken.setAllowedMinter(address(dailyLottery));
-
         // stop broadcast
         vm.stopBroadcast();
 
-        return dailyLottery;
+        // save deployment address to JSON
+        writeJson(deploymentFile, DEPLOY_RAND_PROVIDER_ADDR, vrfProviderAddress);
+
+        return vrfProviderAddress;
     }
 }

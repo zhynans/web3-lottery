@@ -1,23 +1,32 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IDailyLotteryToken} from "./dailylottery/interface/IDailyLotteryToken.sol";
-import {IDailyLotteryNumberLogic} from "./dailylottery/interface/IDailyLotteryNumberLogic.sol";
-import {IDailyLotteryRandProvider} from "./dailylottery/interface/IDailyLotteryRand.sol";
-import {IDailyLotteryRandCallback} from "./dailylottery/interface/IDailyLotteryRand.sol";
-import {LotteryDrawState} from "./dailylottery/DailyLotteryDef.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {IDailyLotteryToken} from "./interface/IDailyLotteryToken.sol";
+import {IDailyLotteryNumberLogic} from "./interface/IDailyLotteryNumberLogic.sol";
+import {
+    IDailyLotteryRandCallback,
+    IDailyLotteryRandProvider
+} from "./interface/IDailyLotteryRand.sol";
+import {IDailyLotteryConfig} from "./interface/IDailyLotteryConfig.sol";
+import {LotteryDrawState} from "./DailyLotteryDef.sol";
 
-contract DailyLottery is Ownable, IDailyLotteryRandCallback {
-    IDailyLotteryToken public nft; // nft
-    IDailyLotteryNumberLogic public numberLogic; // number logic
-    IDailyLotteryRandProvider public randProvider; // rand provider
+contract DailyLotteryV1 is
+    IDailyLotteryRandCallback,
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable
+{
+    IDailyLotteryToken public nftContract; // nft contract
+    IDailyLotteryNumberLogic public numberLogicContract; // number logic contract
+    IDailyLotteryRandProvider public randProviderContract; // rand provider contract
+    IDailyLotteryConfig public configContract; // config contract
 
     uint64 public lotteryNumber; // current lottery number
 
-    uint256 public pricePerNumber = 0.001 ether; // price per number
-    uint8 public feeRate = 5; // fee rate
-    uint64 public minDrawInterval = 1 days - 1 hours; // min interval between two lotteries
+    uint64 public minDrawInterval; // min interval between two lotteries
 
     struct WinnerData {
         address winner; // the address of the winner
@@ -66,18 +75,36 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         uint256 drawTime
     );
 
-    constructor(
-        address _nftAddress,
-        address _numberLogicAddress,
-        address _randProviderAddress
-    ) Ownable(msg.sender) {
-        nft = IDailyLotteryToken(_nftAddress);
-        numberLogic = IDailyLotteryNumberLogic(_numberLogicAddress);
-        randProvider = IDailyLotteryRandProvider(_randProviderAddress);
+    // =================== upgradable function =============
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers(); // 把 initialized 状态设置为 true，防止逻辑合约被攻击者初始化
+    }
+
+    function initialize(
+        address _nftAddr,
+        address _numberLogicAddr,
+        address _randProviderAddr,
+        address _configAddr
+    ) public initializer {
+        __Ownable_init(msg.sender);
+        __UUPSUpgradeable_init();
+
+        nftContract = IDailyLotteryToken(_nftAddr);
+        numberLogicContract = IDailyLotteryNumberLogic(_numberLogicAddr);
+        randProviderContract = IDailyLotteryRandProvider(_randProviderAddr);
+        configContract = IDailyLotteryConfig(_configAddr);
+        minDrawInterval = 1 days - 1 hours;
 
         // initialize lottery data
         initNextLotteryData();
     }
+
+    // UUPS授权函数（必须实现）：不需要执行额外逻辑，真正的安全逻辑由修饰器onlyOwner控制，防止恶意升级
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+    // ======================= upgradable function end =====================
 
     // ============ Lottery Data Functions ============
 
@@ -87,13 +114,13 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         // since LotteryData structure contains mapping, it cannot be directly assigned using struct literal
         LotteryData storage lotteryData = lotterys[lotteryNumber];
         lotteryData.lotteryNumber = lotteryNumber;
-        lotteryData.pricePerNumber = pricePerNumber;
-        lotteryData.feeRate = feeRate;
+        lotteryData.pricePerNumber = _pricePerNumber();
+        lotteryData.feeRate = _feeRate();
         lotteryData.totalAmount = 0;
         lotteryData.drawState = LotteryDrawState.NotDrawn;
         lotteryData.drawTime = block.timestamp; // it represents the start time of the lottery before drawn
 
-        numberLogic.initNumberLogic();
+        numberLogicContract.initNumberLogic();
     }
 
     function drawLotteryData(LotteryData storage lotteryData) private {
@@ -114,13 +141,13 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
             revert DrawingInProgress();
         }
 
-        uint256 _pricePerNumber = lotteryData.pricePerNumber; // get price per number
+        uint256 _price = lotteryData.pricePerNumber; // get price per number
 
         // check if the value is correct
-        require(msg.value == _pricePerNumber * nums, WrongEthValue(msg.value));
+        require(msg.value == _price * nums, WrongEthValue(msg.value));
 
         // generate numbers
-        uint64[] memory numbers = numberLogic.takeNumbers(nums);
+        uint64[] memory numbers = numberLogicContract.takeNumbers(nums);
 
         // add numbers into lottery data
         for (uint64 i = 0; i < numbers.length; i++) {
@@ -152,7 +179,7 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         );
 
         // if no one take numbers, skip drawing
-        if (!numberLogic.canDraw()) {
+        if (!numberLogicContract.canDraw()) {
             finishLotteryData(lotteryData);
             emit LotteryDrawnEvent(lotteryNumber, address(0), 0, 0, 0, block.timestamp);
 
@@ -164,7 +191,7 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         drawLotteryData(lotteryData);
 
         // request a random number
-        randProvider.requestRandomNumbers(1);
+        randProviderContract.requestRandomNumbers(1);
     }
 
     // error for only rand provider
@@ -173,10 +200,10 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
     // VRF callback function
     function callbackFromRand(uint256 _randomNumber) external {
         // check if the sender is the random manager
-        require(msg.sender == address(randProvider), OnlyRandProvider(msg.sender));
+        require(msg.sender == address(randProviderContract), OnlyRandProvider(msg.sender));
 
         // calculate winning number
-        uint64 winnerNumber = numberLogic.getWinnerNumber(_randomNumber);
+        uint64 winnerNumber = numberLogicContract.getWinnerNumber(_randomNumber);
 
         // find winner
         address winner = numberToUser[lotteryNumber][winnerNumber];
@@ -185,7 +212,7 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         (uint256 fee, uint256 prize) = _handleFeeAndPrize(winner);
 
         // mint NFT to winner
-        uint256 tokenId = nft.safeMint(winner, lotteryNumber);
+        uint256 tokenId = nftContract.safeMint(winner, lotteryNumber);
 
         // record winning information
         winners[lotteryNumber] = WinnerData({
@@ -214,7 +241,8 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
 
     function _handleFeeAndPrize(address winner) private returns (uint256 fee, uint256 prize) {
         // caculate prize and fee
-        fee = (lotterys[lotteryNumber].totalAmount * feeRate) / 100;
+        uint8 currentFeeRate = _feeRate();
+        fee = (lotterys[lotteryNumber].totalAmount * currentFeeRate) / 100;
         prize = lotterys[lotteryNumber].totalAmount - fee;
 
         // transfer fee to owner
@@ -233,16 +261,18 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
         return (fee, prize);
     }
 
-    function updatePricePerNumber(uint256 _pricePerNumber) public onlyOwner {
-        pricePerNumber = _pricePerNumber;
+    function updateConfigAddress(address _configAddress) public onlyOwner {
+        configContract = IDailyLotteryConfig(_configAddress);
     }
 
-    function updateFeeRate(uint8 _feeRate) public onlyOwner {
-        feeRate = _feeRate;
+    // ============= config functions ============
+
+    function _pricePerNumber() private view returns (uint256) {
+        return configContract.PricePerNumber();
     }
 
-    function updateNftAddress(address _nftAddress) public onlyOwner {
-        nft = IDailyLotteryToken(_nftAddress);
+    function _feeRate() private view returns (uint8) {
+        return configContract.FeeRate();
     }
 
     // ============= getter functions =============
@@ -281,23 +311,15 @@ contract DailyLottery is Ownable, IDailyLotteryRandCallback {
     // ============= set function =============
 
     function setRandProviderAddress(address _randProviderAddress) public onlyOwner {
-        randProvider = IDailyLotteryRandProvider(_randProviderAddress);
+        randProviderContract = IDailyLotteryRandProvider(_randProviderAddress);
     }
 
     function setNftAddress(address _nftAddress) public onlyOwner {
-        nft = IDailyLotteryToken(_nftAddress);
+        nftContract = IDailyLotteryToken(_nftAddress);
     }
 
     function setNumberLogicAddress(address _numberLogicAddress) public onlyOwner {
-        numberLogic = IDailyLotteryNumberLogic(_numberLogicAddress);
-    }
-
-    function setPricePerNumber(uint256 _pricePerNumber) public onlyOwner {
-        pricePerNumber = _pricePerNumber;
-    }
-
-    function setFeeRate(uint8 _feeRate) public onlyOwner {
-        feeRate = _feeRate;
+        numberLogicContract = IDailyLotteryNumberLogic(_numberLogicAddress);
     }
 
     function setMinDrawInterval(uint64 _minDrawInterval) public onlyOwner {
