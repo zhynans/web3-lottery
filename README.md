@@ -1,4 +1,4 @@
-[去中心化彩票系统（web3个人实践项目）](http://web3-lottery.ioceans.net/) <br/>
+[去中心化彩票系统（web3个人实践项目）](https://dev.ioceans.net/web3-lottery/) <br/>
 ps：项目还有不少可优化空间，仅供学习使用。
 
 主要提供两个彩票功能：
